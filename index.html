@@ -7,7 +7,7 @@
   <style>
     :root{
       --bg:#f6f7fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
-      --main:#2563eb; --ok:#16a34a; --bad:#dc2626; --line:#e5e7eb;
+      --main:#2563eb; --ok:#16a34a; --bad:#dc2626; --warn:#d97706; --line:#e5e7eb;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
@@ -15,6 +15,7 @@
     .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 8px 22px rgba(15,23,42,.06);margin-bottom:16px}
     h1{font-size:24px;margin:0 0 8px}
     h2{font-size:18px;margin:0 0 10px}
+    h3{font-size:16px;margin:14px 0 8px}
     .muted{color:var(--muted);font-size:14px;line-height:1.6}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     input,select{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px;background:white}
@@ -24,6 +25,8 @@
     button.ghost{background:#eef2ff;color:#1e40af}
     button:disabled{opacity:.45;cursor:not-allowed}
     .pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#1e40af;font-size:13px;font-weight:700}
+    .pill.okPill{background:#ecfdf5;color:#047857}
+    .pill.badPill{background:#fef2f2;color:#b91c1c}
     .qtitle{font-size:18px;line-height:1.7;font-weight:750;white-space:pre-wrap}
     .option{display:block;width:100%;text-align:left;background:white;color:var(--text);border:1px solid var(--line);padding:13px 14px;border-radius:14px;margin:10px 0;font-weight:600}
     .option:hover{border-color:#93c5fd;background:#f8fbff}
@@ -31,28 +34,81 @@
     .option.correct{border-color:var(--ok);background:#ecfdf5;color:#065f46}
     .option.wrong{border-color:var(--bad);background:#fef2f2;color:#991b1b}
     .result{font-weight:800;font-size:18px;margin-top:12px}
-    .ok{color:var(--ok)} .bad{color:var(--bad)}
+    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
     .bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}
     .bar>div{height:100%;background:var(--main);width:0%}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
     .stat{padding:12px;border-radius:14px;background:#f9fafb;border:1px solid var(--line);text-align:center}
     .stat b{display:block;font-size:22px;margin-bottom:4px}
     .hidden{display:none}
-    table{width:100%;border-collapse:collapse;font-size:14px}
-    th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
-    th{background:#f9fafb}
     .small{font-size:13px}
+    .resultBox{padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:#f9fafb;margin:12px 0 14px}
+    .resultBox.pass{background:#ecfdf5;border-color:#86efac;color:#065f46}
+    .resultBox.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+    .resultBox b{font-size:20px}
+    .weakList{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:8px}
+    .weakItem{border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}
+    .weakItem b{display:block;margin-bottom:4px}
+    .reviewItem{border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;margin:12px 0}
+    .reviewHead{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+    .reviewQuestion{white-space:pre-wrap;font-weight:750;line-height:1.6;margin:8px 0 10px}
+    .reviewOptions{display:grid;gap:8px;margin:8px 0}
+    .reviewOption{border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:#f9fafb}
+    .reviewOption.correct{border-color:#86efac;background:#ecfdf5;color:#065f46;font-weight:700}
+    .reviewOption.wrong{border-color:#fecaca;background:#fef2f2;color:#991b1b;font-weight:700}
+    .explain{border-left:4px solid var(--main);padding:8px 10px;background:#f8fbff;border-radius:10px;margin-top:10px;line-height:1.7}
+    .toolbar{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,247,251,0),var(--bg) 25%);padding-top:16px;margin-top:8px}
+
+    .topBar{display:flex;justify-content:flex-end;margin-bottom:12px}
+    .themeBtn{min-width:132px}
+    :root[data-theme="dark"]{
+      --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#94a3b8;
+      --main:#60a5fa; --ok:#4ade80; --bad:#f87171; --warn:#fbbf24; --line:#334155;
+    }
+    :root[data-theme="dark"] body{color-scheme:dark}
+    :root[data-theme="dark"] .card{box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    :root[data-theme="dark"] input,
+    :root[data-theme="dark"] select{background:#0b1220;color:var(--text);border-color:var(--line)}
+    :root[data-theme="dark"] button.secondary{background:#334155;color:#e5e7eb}
+    :root[data-theme="dark"] button.ghost{background:#1e293b;color:#bfdbfe}
+    :root[data-theme="dark"] .pill{background:#172554;color:#bfdbfe}
+    :root[data-theme="dark"] .pill.okPill{background:#052e16;color:#bbf7d0}
+    :root[data-theme="dark"] .pill.badPill{background:#450a0a;color:#fecaca}
+    :root[data-theme="dark"] .option{background:#0b1220;color:var(--text);border-color:var(--line)}
+    :root[data-theme="dark"] .option:hover{border-color:#60a5fa;background:#111c31}
+    :root[data-theme="dark"] .option.selected{border-color:#60a5fa;background:#172554;color:#dbeafe}
+    :root[data-theme="dark"] .option.correct{border-color:#22c55e;background:#052e16;color:#bbf7d0}
+    :root[data-theme="dark"] .option.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
+    :root[data-theme="dark"] .bar{background:#334155}
+    :root[data-theme="dark"] .stat,
+    :root[data-theme="dark"] .resultBox,
+    :root[data-theme="dark"] .weakItem,
+    :root[data-theme="dark"] .reviewItem,
+    :root[data-theme="dark"] .reviewOption{background:#0b1220;border-color:var(--line);color:var(--text)}
+    :root[data-theme="dark"] .resultBox.pass{background:#052e16;border-color:#166534;color:#bbf7d0}
+    :root[data-theme="dark"] .resultBox.fail{background:#450a0a;border-color:#991b1b;color:#fecaca}
+    :root[data-theme="dark"] .reviewOption.correct{border-color:#22c55e;background:#052e16;color:#bbf7d0}
+    :root[data-theme="dark"] .reviewOption.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
+    :root[data-theme="dark"] .explain{background:#0b1220;border-left-color:#60a5fa;color:var(--text)}
+    :root[data-theme="dark"] .toolbar{background:linear-gradient(180deg,rgba(15,23,42,0),var(--bg) 25%)}
+    :root[data-theme="dark"] a{color:#93c5fd}
     @media(max-width:650px){
       .wrap{padding:12px}
       .grid{grid-template-columns:repeat(2,1fr)}
       h1{font-size:21px}
       .qtitle{font-size:17px}
       button,input,select{width:100%}
+      .reviewHead .pill{width:auto}
+      .topBar{justify-content:stretch}
+      .themeBtn{width:100%}
     }
   </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="topBar">
+    <button id="themeToggleBtn" class="ghost themeBtn" type="button">🌙 夜間模式</button>
+  </div>
   <div class="card">
     <h1>AI應用規劃師｜中級｜模擬考練習 _ FB 雲橫介工程師 分享</h1>
     <div class="muted">
@@ -75,7 +131,7 @@
       <button class="ghost" id="reloadBtn">重新讀取題庫</button>
     </div>
     <p id="loadMsg" class="muted">正在讀取題庫...</p>
-    <p class="muted small">放到 GitHub Pages 後，別人只要打開網址就能練習。</p>
+    <p class="muted small">總分 100 分，預設 70 分為通過門檻。放到 GitHub Pages 後，別人只要打開網址就能練習。</p>
   </div>
 
   <div id="quiz" class="card hidden">
@@ -88,28 +144,36 @@
     <div id="questionText" class="qtitle"></div>
     <div id="options"></div>
     <div id="feedback" class="muted"></div>
-    <div class="row" style="margin-top:14px">
-      <button id="submitBtn">確認答案</button>
-      <button class="secondary" id="nextBtn" disabled>下一題</button>
+    <div class="toolbar">
+      <div class="row" style="margin-top:14px">
+        <button id="submitBtn">確認答案</button>
+        <button class="secondary" id="nextBtn" disabled>下一題</button>
+      </div>
     </div>
   </div>
 
   <div id="finish" class="card hidden">
     <h2>測驗結果</h2>
+    <div id="passText" class="resultBox"></div>
     <div class="grid">
-      <div class="stat"><b id="finalScore">0</b>分數</div>
+      <div class="stat"><b id="finalScore">0</b>總分</div>
       <div class="stat"><b id="finalCorrect">0</b>答對</div>
       <div class="stat"><b id="finalWrong">0</b>答錯</div>
       <div class="stat"><b id="finalRate">0%</b>正確率</div>
+      <div class="stat"><b id="pointEach">0</b>每題分數</div>
     </div>
+
+    <div id="weaknessBox" style="margin-top:14px"></div>
+
     <div class="row" style="margin-top:14px">
       <button id="againBtn">再考一次</button>
       <button class="ghost" id="reviewBtn">查看錯題</button>
+      <button class="secondary" id="wrongOnlyBtn">只練錯題</button>
     </div>
   </div>
 
   <div id="review" class="card hidden">
-    <h2>錯題複習</h2>
+    <h2>錯題複習 / 預習重點</h2>
     <div id="reviewTable"></div>
   </div>
 </div>
@@ -117,6 +181,10 @@
 <script>
 const SHEET_ID = "1G8siOLbJ6Has1GwZgeQ90HUXyAC82xY0IZn8pKOg0LY";
 const GID = "0";
+
+// 可自行調整：總分與通過門檻
+const TOTAL_SCORE = 100;
+const PASS_SCORE = 70;
 
 let bank = [];
 let quiz = [];
@@ -127,6 +195,38 @@ let correctCount = 0;
 let mode = "instant";
 
 const $ = id => document.getElementById(id);
+const LETTERS = ["A","B","C","D"];
+
+function getSavedTheme(){
+  try{return localStorage.getItem("aiExamTheme") || "";}catch(e){return "";}
+}
+
+function saveTheme(theme){
+  try{localStorage.setItem("aiExamTheme", theme);}catch(e){}
+}
+
+function applyTheme(theme){
+  const finalTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", finalTheme);
+  saveTheme(finalTheme);
+  const btn = $("themeToggleBtn");
+  if(btn){
+    btn.textContent = finalTheme === "dark" ? "☀️ 日間模式" : "🌙 夜間模式";
+    btn.setAttribute("aria-label", finalTheme === "dark" ? "切換到日間模式" : "切換到夜間模式");
+  }
+}
+
+function initTheme(){
+  const saved = getSavedTheme();
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(saved || (prefersDark ? "dark" : "light"));
+}
+
+function toggleTheme(){
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
 
 function normalizeHeader(h){
   return String(h || "").trim().toLowerCase()
@@ -170,8 +270,6 @@ function rowsToQuestions(rows){
     const type = pick(obj, ["題目類型","類型","題型","type"]);
     const q = pick(obj, ["題目","問題","question","試題"]);
 
-    // 支援你的欄位：選項1～選項4
-    // 也保留舊版 A/B/C/D 格式
     const opts = [
       pick(obj, ["選項1","選項一","1","A","甲","選項A","optionA"]),
       pick(obj, ["選項2","選項二","2","B","乙","選項B","optionB"]),
@@ -179,7 +277,6 @@ function rowsToQuestions(rows){
       pick(obj, ["選項4","選項四","4","D","丁","選項D","optionD"])
     ].filter(Boolean);
 
-    // 支援你的欄位：正確答案
     const ans = pick(obj, ["正確答案","答案","正解","answer","correct"]);
     const exp = pick(obj, ["解析","說明","explanation"]);
 
@@ -194,18 +291,17 @@ function shuffle(arr){
 function answerIndex(item){
   const raw = String(item.ans || "").trim();
   const a = raw.toUpperCase();
-  const letters = ["A","B","C","D"];
 
   // A/B/C/D
-  if(letters.includes(a)) return letters.indexOf(a);
+  if(LETTERS.includes(a)) return LETTERS.indexOf(a);
 
-  // 1/2/3/4、選項1、選項 1、答案1
+  // 1/2/3/4、選項1、答案1
   const numMatch = raw.match(/[1-4]/);
   if(numMatch && raw.length <= 8) return Number(numMatch[0]) - 1;
 
-  // (A)、A.、A、答案A
+  // (A)、A.、答案A
   const letterMatch = a.match(/[ABCD]/);
-  if(letterMatch && a.length <= 8) return letters.indexOf(letterMatch[0]);
+  if(letterMatch && a.length <= 8) return LETTERS.indexOf(letterMatch[0]);
 
   // 正確答案直接填完整選項文字
   const idx = item.opts.findIndex(o => String(o).trim() === raw);
@@ -265,17 +361,35 @@ async function loadBank(){
   }
 }
 
-function startQuiz(){
-  if(!bank.length){ alert("題庫尚未讀取成功"); return; }
-  mode = $("modeInput").value;
-  const count = Math.min(Number($("countInput").value || 20), bank.length);
-  quiz = shuffle(bank).slice(0,count);
-  index = 0; selected = null; answers = []; correctCount = 0;
+function resetQuizState(){
+  index = 0;
+  selected = null;
+  answers = [];
+  correctCount = 0;
   $("setup").classList.add("hidden");
   $("finish").classList.add("hidden");
   $("review").classList.add("hidden");
   $("quiz").classList.remove("hidden");
   renderQuestion();
+}
+
+function startQuiz(){
+  if(!bank.length){ alert("題庫尚未讀取成功"); return; }
+  mode = $("modeInput").value;
+  const count = Math.min(Number($("countInput").value || 20), bank.length);
+  quiz = shuffle(bank).slice(0,count);
+  resetQuizState();
+}
+
+function startWrongQuiz(){
+  const wrongItems = answers.filter(a => !a.isCorrect).map(a => a.item);
+  if(!wrongItems.length){
+    alert("這次沒有錯題，不需要重練。");
+    return;
+  }
+  mode = "instant"; // 錯題重練預設立即看解析，方便複習
+  quiz = shuffle(wrongItems);
+  resetQuizState();
 }
 
 function renderQuestion(){
@@ -284,22 +398,23 @@ function renderQuestion(){
   $("progressText").textContent = `第 ${index+1} / ${quiz.length} 題`;
   $("scoreText").textContent = `目前答對：${correctCount}`;
   $("progressBar").style.width = `${((index)/quiz.length)*100}%`;
+
   const meta = [
     item.no ? `題號：${item.no}` : "",
     item.scope ? `範圍：${item.scope}` : "",
     item.type ? `題型：${item.type}` : ""
   ].filter(Boolean).join("　");
+
   $("questionText").textContent = (meta ? meta + "\n\n" : "") + item.q;
   $("feedback").innerHTML = "";
   $("submitBtn").disabled = false;
   $("nextBtn").disabled = true;
 
-  const letters = ["A","B","C","D"];
   $("options").innerHTML = "";
   item.opts.forEach((opt,i)=>{
     const btn = document.createElement("button");
     btn.className = "option";
-    btn.textContent = `${letters[i]}. ${opt}`;
+    btn.textContent = `${LETTERS[i]}. ${opt}`;
     btn.onclick = () => {
       selected = i;
       [...document.querySelectorAll(".option")].forEach(x=>x.classList.remove("selected"));
@@ -311,9 +426,11 @@ function renderQuestion(){
 
 function submitAnswer(){
   if(selected === null){ alert("請先選一個答案"); return; }
+
   const item = quiz[index];
   const correct = answerIndex(item);
-  const isCorrect = selected === correct;
+  const isCorrect = correct >= 0 && selected === correct;
+
   answers.push({item, selected, correct, isCorrect});
   if(isCorrect) correctCount++;
 
@@ -326,9 +443,13 @@ function submitAnswer(){
       if(i === correct) btn.classList.add("correct");
       if(i === selected && !isCorrect) btn.classList.add("wrong");
     });
-    const letters = ["A","B","C","D"];
+
+    const correctText = correct >= 0
+      ? `${LETTERS[correct]}．${item.opts[correct]}`
+      : item.ans;
+
     $("feedback").innerHTML =
-      `<div class="result ${isCorrect ? "ok" : "bad"}">${isCorrect ? "答對了！" : "答錯了！"} 正解：${letters[correct] || item.ans}</div>` +
+      `<div class="result ${isCorrect ? "ok" : "bad"}">${isCorrect ? "答對了！" : "答錯了！"} 正解：${escapeHtml(correctText)}</div>` +
       (item.exp ? `<p><b>解析：</b>${escapeHtml(item.exp)}</p>` : "");
   }
 }
@@ -343,36 +464,118 @@ function finishQuiz(){
   $("quiz").classList.add("hidden");
   $("finish").classList.remove("hidden");
   $("progressBar").style.width = `100%`;
+
   const total = quiz.length;
-  const score = Math.round((correctCount / total) * 100);
-  $("finalScore").textContent = score;
+  const wrongCount = total - correctCount;
+  const rate = total ? Math.round((correctCount / total) * 100) : 0;
+  const score = total ? Math.round((correctCount / total) * TOTAL_SCORE) : 0;
+  const pointEach = total ? (TOTAL_SCORE / total).toFixed(2) : "0";
+
+  $("finalScore").textContent = `${score}/${TOTAL_SCORE}`;
   $("finalCorrect").textContent = correctCount;
-  $("finalWrong").textContent = total - correctCount;
-  $("finalRate").textContent = `${score}%`;
+  $("finalWrong").textContent = wrongCount;
+  $("finalRate").textContent = `${rate}%`;
+  $("pointEach").textContent = pointEach;
+
+  const pass = score >= PASS_SCORE;
+  $("passText").className = `resultBox ${pass ? "pass" : "fail"}`;
+  $("passText").innerHTML = pass
+    ? `<b>結果：通過門檻</b><br>本次 ${score} 分，已達 ${PASS_SCORE} 分門檻。可以繼續加強錯題，讓分數更穩。`
+    : `<b>結果：未達門檻</b><br>本次 ${score} 分，距離 ${PASS_SCORE} 分還差 ${PASS_SCORE - score} 分。建議先看下方錯題與弱點分類。`;
+
+  renderWeakness();
+  reviewWrong(true); // 考完自動顯示錯題，方便預習
 }
 
-function reviewWrong(){
+function renderWeakness(){
   const wrong = answers.filter(a => !a.isCorrect);
-  $("review").classList.remove("hidden");
   if(!wrong.length){
-    $("reviewTable").innerHTML = "<p class='muted'>恭喜，沒有錯題。</p>";
+    $("weaknessBox").innerHTML = `<h3>弱點分析</h3><p class="muted">本次沒有錯題，表現很穩。可以提高題數或改用考試模式挑戰。</p>`;
     return;
   }
-  const letters = ["A","B","C","D"];
-  $("reviewTable").innerHTML = `<table>
-    <thead><tr><th>題目</th><th>你的答案</th><th>正解</th><th>解析</th></tr></thead>
-    <tbody>${wrong.map(a=>`
-      <tr>
-        <td>${escapeHtml([
-          a.item.no ? "題號：" + a.item.no : "",
-          a.item.scope ? "範圍：" + a.item.scope : "",
-          a.item.type ? "題型：" + a.item.type : "",
-          a.item.q
-        ].filter(Boolean).join("\n"))}</td>
-        <td>${letters[a.selected] || "-"}．${escapeHtml(a.item.opts[a.selected] || "")}</td>
-        <td>${letters[a.correct] || "-"}．${escapeHtml(a.item.opts[a.correct] || a.item.ans || "")}</td>
-        <td>${escapeHtml(a.item.exp || "")}</td>
-      </tr>`).join("")}</tbody></table>`;
+
+  const counter = {};
+  wrong.forEach(a => {
+    const key = a.item.scope || a.item.type || "未分類";
+    counter[key] = (counter[key] || 0) + 1;
+  });
+
+  const items = Object.entries(counter).sort((a,b)=>b[1]-a[1]);
+  $("weaknessBox").innerHTML = `
+    <h3>弱點分析</h3>
+    <p class="muted">錯題主要集中在以下範圍，建議優先複習：</p>
+    <div class="weakList">
+      ${items.map(([name,count]) => `
+        <div class="weakItem">
+          <b>${escapeHtml(name)}</b>
+          <span class="bad">${count} 題錯誤</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function reviewWrong(autoOpen=false){
+  const wrong = answers.filter(a => !a.isCorrect);
+  $("review").classList.remove("hidden");
+
+  if(!wrong.length){
+    $("reviewTable").innerHTML = "<p class='muted'>恭喜，沒有錯題。</p>";
+    $("wrongOnlyBtn").disabled = true;
+    return;
+  }
+
+  $("wrongOnlyBtn").disabled = false;
+
+  $("reviewTable").innerHTML = `
+    <p class="muted">共 ${wrong.length} 題錯題。先看解析，再按「只練錯題」重跑一輪，會比較有感。</p>
+    ${wrong.map((a,idx)=>renderReviewItem(a, idx)).join("")}
+  `;
+
+  if(!autoOpen){
+    $("review").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+}
+
+function renderReviewItem(a, idx){
+  const item = a.item;
+  const meta = [
+    item.no ? `題號：${item.no}` : "",
+    item.scope ? `範圍：${item.scope}` : "",
+    item.type ? `題型：${item.type}` : ""
+  ].filter(Boolean);
+
+  const yourAnswer = `${LETTERS[a.selected] || "-"}．${item.opts[a.selected] || ""}`;
+  const correctAnswer = a.correct >= 0
+    ? `${LETTERS[a.correct]}．${item.opts[a.correct]}`
+    : item.ans;
+
+  return `
+    <div class="reviewItem">
+      <div class="reviewHead">
+        <span class="pill badPill">錯題 ${idx+1}</span>
+        ${meta.map(m=>`<span class="pill">${escapeHtml(m)}</span>`).join("")}
+      </div>
+
+      <div class="reviewQuestion">${escapeHtml(item.q)}</div>
+
+      <div class="muted">
+        你的答案：<b class="bad">${escapeHtml(yourAnswer)}</b><br>
+        正確答案：<b class="ok">${escapeHtml(correctAnswer)}</b>
+      </div>
+
+      <div class="reviewOptions">
+        ${item.opts.map((opt,i)=>{
+          const cls = i === a.correct ? "correct" : (i === a.selected ? "wrong" : "");
+          return `<div class="reviewOption ${cls}">${LETTERS[i]}．${escapeHtml(opt)}</div>`;
+        }).join("")}
+      </div>
+
+      <div class="explain">
+        <b>解析：</b>${escapeHtml(item.exp || "這題目前沒有解析，建議回教材查這個觀念。")}
+      </div>
+    </div>
+  `;
 }
 
 function escapeHtml(s){
@@ -383,9 +586,16 @@ $("startBtn").onclick = startQuiz;
 $("reloadBtn").onclick = loadBank;
 $("submitBtn").onclick = submitAnswer;
 $("nextBtn").onclick = nextQuestion;
-$("againBtn").onclick = () => { $("finish").classList.add("hidden"); $("review").classList.add("hidden"); $("setup").classList.remove("hidden"); };
-$("reviewBtn").onclick = reviewWrong;
+$("againBtn").onclick = () => {
+  $("finish").classList.add("hidden");
+  $("review").classList.add("hidden");
+  $("setup").classList.remove("hidden");
+};
+$("reviewBtn").onclick = () => reviewWrong(false);
+$("wrongOnlyBtn").onclick = startWrongQuiz;
+$("themeToggleBtn").onclick = toggleTheme;
 
+initTheme();
 loadBank();
 </script>
 </body>

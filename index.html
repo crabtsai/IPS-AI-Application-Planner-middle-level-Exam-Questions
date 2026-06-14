@@ -59,6 +59,14 @@
     .explain{border-left:4px solid var(--main);padding:8px 10px;background:#f8fbff;border-radius:10px;margin-top:10px;line-height:1.7}
     .toolbar{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,247,251,0),var(--bg) 25%);padding-top:16px;margin-top:8px}
 
+    .scopeTools{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 8px}
+    .scopeBox{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:8px}
+    .scopeCheck{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:12px;background:#f9fafb;padding:9px 10px;line-height:1.45;cursor:pointer}
+    .scopeCheck input{width:auto;margin-top:3px;flex:0 0 auto}
+    .scopeCheck span{font-size:14px;font-weight:650}
+    .scopeCheck small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .scopeCheck:hover{border-color:#93c5fd;background:#f8fbff}
+
     .topBar{display:flex;justify-content:flex-end;margin-bottom:12px}
     .themeBtn{min-width:132px}
     :root[data-theme="dark"]{
@@ -91,6 +99,9 @@
     :root[data-theme="dark"] .reviewOption.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
     :root[data-theme="dark"] .explain{background:#0b1220;border-left-color:#60a5fa;color:var(--text)}
     :root[data-theme="dark"] .toolbar{background:linear-gradient(180deg,rgba(15,23,42,0),var(--bg) 25%)}
+
+    :root[data-theme="dark"] .scopeCheck{background:#0b1220;border-color:var(--line);color:var(--text)}
+    :root[data-theme="dark"] .scopeCheck:hover{border-color:#60a5fa;background:#111c31}
     :root[data-theme="dark"] a{color:#93c5fd}
     @media(max-width:650px){
       .wrap{padding:12px}
@@ -130,6 +141,15 @@
       <button id="startBtn">開始模擬考</button>
       <button class="ghost" id="reloadBtn">重新讀取題庫</button>
     </div>
+
+    <h3>練習範圍</h3>
+    <div class="scopeTools">
+      <button class="ghost" id="scopeAllBtn" type="button">全選範圍</button>
+      <button class="ghost" id="scopeClearBtn" type="button">清除勾選</button>
+    </div>
+    <div id="scopeFilterBox" class="scopeBox"></div>
+    <p id="scopeFilterMsg" class="muted small">讀取題庫後會自動產生範圍清單，預設全選。</p>
+
     <p id="loadMsg" class="muted">正在讀取題庫...</p>
     <p class="muted small">總分 100 分，預設 70 分為通過門檻。放到 GitHub Pages 後，別人只要打開網址就能練習。</p>
   </div>
@@ -193,6 +213,7 @@ let selected = null;
 let answers = [];
 let correctCount = 0;
 let mode = "instant";
+let scopeNames = [];
 
 const $ = id => document.getElementById(id);
 const LETTERS = ["A","B","C","D"];
@@ -288,6 +309,92 @@ function shuffle(arr){
   return [...arr].sort(()=>Math.random()-0.5);
 }
 
+
+function scopeKey(scope){
+  const s = String(scope || "").trim();
+  return s || "未分類";
+}
+
+function getScopeCounts(){
+  const counter = {};
+  bank.forEach(item => {
+    const key = scopeKey(item.scope);
+    counter[key] = (counter[key] || 0) + 1;
+  });
+  return counter;
+}
+
+function renderScopeFilters(){
+  const box = $("scopeFilterBox");
+  if(!box) return;
+
+  box.innerHTML = "";
+  const counts = getScopeCounts();
+  scopeNames = Object.keys(counts).sort((a,b)=>a.localeCompare(b, "zh-Hant"));
+
+  if(!scopeNames.length){
+    $("scopeFilterMsg").textContent = "尚未讀到範圍資料。";
+    return;
+  }
+
+  scopeNames.forEach(name => {
+    const label = document.createElement("label");
+    label.className = "scopeCheck";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.className = "scopeInput";
+    input.value = name;
+    input.checked = true;
+    input.addEventListener("change", updateFilteredCount);
+
+    const textWrap = document.createElement("span");
+    textWrap.textContent = name;
+
+    const small = document.createElement("small");
+    small.textContent = `${counts[name]} 題`;
+    textWrap.appendChild(small);
+
+    label.appendChild(input);
+    label.appendChild(textWrap);
+    box.appendChild(label);
+  });
+
+  updateFilteredCount();
+}
+
+function getSelectedScopes(){
+  return [...document.querySelectorAll(".scopeInput:checked")].map(input => input.value);
+}
+
+function getFilteredBank(){
+  const selectedScopes = new Set(getSelectedScopes());
+  if(!selectedScopes.size) return [];
+  return bank.filter(item => selectedScopes.has(scopeKey(item.scope)));
+}
+
+function updateFilteredCount(){
+  if(!$("scopeFilterMsg")) return;
+
+  const selectedScopes = getSelectedScopes();
+  const pool = getFilteredBank();
+  const max = Math.max(pool.length, 1);
+  const current = Number($("countInput").value || 20);
+
+  $("countInput").max = max;
+  $("countInput").value = Math.min(current, max);
+
+  $("scopeFilterMsg").textContent =
+    selectedScopes.length
+      ? `目前已選 ${selectedScopes.length} 個範圍，共 ${pool.length} 題可抽。`
+      : "目前沒有勾選範圍，請至少選一個範圍才能開始。";
+}
+
+function setAllScopes(checked){
+  document.querySelectorAll(".scopeInput").forEach(input => input.checked = checked);
+  updateFilteredCount();
+}
+
 function answerIndex(item){
   const raw = String(item.ans || "").trim();
   const a = raw.toUpperCase();
@@ -352,8 +459,8 @@ async function loadBank(){
     }
 
     $("loadMsg").textContent = `題庫讀取成功：共 ${bank.length} 題。`;
-    $("countInput").max = bank.length;
-    $("countInput").value = Math.min(Number($("countInput").value || 20), bank.length);
+    renderScopeFilters();
+    updateFilteredCount();
   }catch(e){
     $("loadMsg").innerHTML =
       `讀取失敗：${escapeHtml(e.message)}<br>` +
@@ -375,9 +482,16 @@ function resetQuizState(){
 
 function startQuiz(){
   if(!bank.length){ alert("題庫尚未讀取成功"); return; }
+
+  const pool = getFilteredBank();
+  if(!pool.length){
+    alert("請至少勾選一個有題目的範圍");
+    return;
+  }
+
   mode = $("modeInput").value;
-  const count = Math.min(Number($("countInput").value || 20), bank.length);
-  quiz = shuffle(bank).slice(0,count);
+  const count = Math.min(Number($("countInput").value || 20), pool.length);
+  quiz = shuffle(pool).slice(0,count);
   resetQuizState();
 }
 
@@ -584,6 +698,9 @@ function escapeHtml(s){
 
 $("startBtn").onclick = startQuiz;
 $("reloadBtn").onclick = loadBank;
+$("scopeAllBtn").onclick = () => setAllScopes(true);
+$("scopeClearBtn").onclick = () => setAllScopes(false);
+$("countInput").addEventListener("change", updateFilteredCount);
 $("submitBtn").onclick = submitAnswer;
 $("nextBtn").onclick = nextQuestion;
 $("againBtn").onclick = () => {
@@ -600,3 +717,4 @@ loadBank();
 </script>
 </body>
 </html>
+

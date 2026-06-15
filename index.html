@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI應用規劃師｜中級模擬考練習 _ FB 雲橫介工程師 分享</title>
+  <title>AI應用規劃師｜初級模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</title>
   <style>
     :root{
       --bg:#f6f7fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
-      --main:#2563eb; --ok:#16a34a; --bad:#dc2626; --warn:#d97706; --line:#e5e7eb;
+      --main:#2563eb; --ok:#16a34a; --bad:#dc2626; --line:#e5e7eb;
+      --warn:#f59e0b;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
@@ -15,18 +16,16 @@
     .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 8px 22px rgba(15,23,42,.06);margin-bottom:16px}
     h1{font-size:24px;margin:0 0 8px}
     h2{font-size:18px;margin:0 0 10px}
-    h3{font-size:16px;margin:14px 0 8px}
     .muted{color:var(--muted);font-size:14px;line-height:1.6}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    input,select{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px;background:white}
+    input,select{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px;background:white;color:var(--text)}
     input[type="number"]{width:110px}
     button{border:0;border-radius:12px;padding:10px 14px;font-size:15px;cursor:pointer;background:var(--main);color:white;font-weight:700}
     button.secondary{background:#111827}
     button.ghost{background:#eef2ff;color:#1e40af}
+    button.warn{background:var(--warn);color:#111827}
     button:disabled{opacity:.45;cursor:not-allowed}
     .pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#1e40af;font-size:13px;font-weight:700}
-    .pill.okPill{background:#ecfdf5;color:#047857}
-    .pill.badPill{background:#fef2f2;color:#b91c1c}
     .qtitle{font-size:18px;line-height:1.7;font-weight:750;white-space:pre-wrap}
     .option{display:block;width:100%;text-align:left;background:white;color:var(--text);border:1px solid var(--line);padding:13px 14px;border-radius:14px;margin:10px 0;font-weight:600}
     .option:hover{border-color:#93c5fd;background:#f8fbff}
@@ -34,98 +33,188 @@
     .option.correct{border-color:var(--ok);background:#ecfdf5;color:#065f46}
     .option.wrong{border-color:var(--bad);background:#fef2f2;color:#991b1b}
     .result{font-weight:800;font-size:18px;margin-top:12px}
-    .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+    .ok{color:var(--ok)} .bad{color:var(--bad)}
     .bar{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:8px}
     .bar>div{height:100%;background:var(--main);width:0%}
-    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .stat{padding:12px;border-radius:14px;background:#f9fafb;border:1px solid var(--line);text-align:center}
     .stat b{display:block;font-size:22px;margin-bottom:4px}
     .hidden{display:none}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}
+    th{background:#f9fafb}
     .small{font-size:13px}
-    .resultBox{padding:14px 16px;border-radius:16px;border:1px solid var(--line);background:#f9fafb;margin:12px 0 14px}
-    .resultBox.pass{background:#ecfdf5;border-color:#86efac;color:#065f46}
-    .resultBox.fail{background:#fef2f2;border-color:#fecaca;color:#991b1b}
-    .resultBox b{font-size:20px}
-    .weakList{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:8px}
-    .weakItem{border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px}
-    .weakItem b{display:block;margin-bottom:4px}
-    .reviewItem{border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;margin:12px 0}
-    .reviewHead{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-    .reviewQuestion{white-space:pre-wrap;font-weight:750;line-height:1.6;margin:8px 0 10px}
-    .reviewOptions{display:grid;gap:8px;margin:8px 0}
-    .reviewOption{border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:#f9fafb}
-    .reviewOption.correct{border-color:#86efac;background:#ecfdf5;color:#065f46;font-weight:700}
-    .reviewOption.wrong{border-color:#fecaca;background:#fef2f2;color:#991b1b;font-weight:700}
-    .explain{border-left:4px solid var(--main);padding:8px 10px;background:#f8fbff;border-radius:10px;margin-top:10px;line-height:1.7}
-    .toolbar{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,247,251,0),var(--bg) 25%);padding-top:16px;margin-top:8px}
+    .summaryBox{margin-top:14px;padding:12px;border-radius:14px;background:#f9fafb;border:1px solid var(--line);line-height:1.7}
+    .passBox{color:#065f46;background:#ecfdf5;border:1px solid #bbf7d0}
+    .failBox{color:#991b1b;background:#fef2f2;border:1px solid #fecaca}
+    .wrongCard{border:1px solid var(--line);border-radius:16px;background:#fff;padding:14px;margin:12px 0}
+    .wrongCard h3{font-size:16px;margin:0 0 8px;line-height:1.6}
+    .answerLine{margin:8px 0;line-height:1.7}
+    .optionList{margin-top:8px;padding-left:0;list-style:none}
+    .optionList li{padding:7px 9px;border-radius:10px;margin:6px 0;background:#f9fafb;border:1px solid var(--line)}
+    .optionList li.correctOpt{background:#ecfdf5;border-color:#86efac;color:#065f46;font-weight:700}
+    .optionList li.wrongOpt{background:#fef2f2;border-color:#fca5a5;color:#991b1b;font-weight:700}
+    .scopeFilter{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:16px;background:#f9fafb}
+    .scopeHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+    .scopeActions{display:flex;gap:8px;flex-wrap:wrap}
+    .scopeActions button{padding:8px 10px;font-size:13px}
+    .scopeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .scopeItem{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:white;line-height:1.4;font-size:14px;cursor:pointer}
+    .scopeItem input{width:auto;margin:0;padding:0;flex:0 0 auto}
+    .scopeItem span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .scopeCount{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap;flex:0 0 auto}
+    .titleRow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .themeToggle{white-space:nowrap}
+    .authStatus{padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:#f9fafb;line-height:1.6;font-size:14px;font-weight:700;margin-bottom:12px}
+    .authStatus.loginOk{background:#ecfdf5;border-color:#86efac;color:#065f46}
+    .authStatus.guest{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    .authStatus.error{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
+    .authGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .authGrid label{font-size:14px;font-weight:700;line-height:1.7}
+    .authGrid input{width:100%;margin-top:4px}
+    .registerPanel{margin-top:12px;padding:12px;border-radius:16px;background:#f9fafb;border:1px solid var(--line)}
+    .registerPanel summary{cursor:pointer;font-weight:800;color:#1e40af;list-style:none}
+    .registerPanel summary::-webkit-details-marker{display:none}
+    .registerPanel summary:before{content:'＋';display:inline-block;margin-right:6px;font-weight:900}
+    .registerPanel[open] summary:before{content:'－'}
+    .configBox{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+    code{background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:1px 5px}
 
-    .scopeTools{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 8px}
-    .scopeBox{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:8px}
-    .scopeCheck{display:flex;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:12px;background:#f9fafb;padding:9px 10px;line-height:1.45;cursor:pointer}
-    .scopeCheck input{width:auto;margin-top:3px;flex:0 0 auto}
-    .scopeCheck span{font-size:14px;font-weight:650}
-    .scopeCheck small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-    .scopeCheck:hover{border-color:#93c5fd;background:#f8fbff}
+    .leaderboardControls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+    .leaderboardNote{margin-top:8px}
+    .leaderboardTableWrap{overflow-x:auto;margin-top:12px}
+    .leaderboardTable{width:100%;border-collapse:collapse;font-size:14px;min-width:720px}
+    .leaderboardTable th,
+    .leaderboardTable td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:middle}
+    .leaderboardTable th{background:#f9fafb;color:var(--muted);font-size:13px}
+    .rankBadge{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:999px;background:#eef2ff;color:#1e40af;font-weight:900}
+    .rankBadge.top1{background:#fef3c7;color:#92400e}
+    .rankBadge.top2{background:#f3f4f6;color:#374151}
+    .rankBadge.top3{background:#ffedd5;color:#9a3412}
+    .leaderName{font-weight:900}
+    .leaderMeta{font-size:12px;color:var(--muted);margin-top:2px}
 
-    .topBar{display:flex;justify-content:flex-end;margin-bottom:12px}
-    .themeBtn{min-width:132px}
-    :root[data-theme="dark"]{
-      --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#94a3b8;
-      --main:#60a5fa; --ok:#4ade80; --bad:#f87171; --warn:#fbbf24; --line:#334155;
+    html[data-theme="dark"]{
+      --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af;
+      --main:#60a5fa; --ok:#4ade80; --bad:#f87171; --line:#334155; --warn:#fbbf24;
     }
-    :root[data-theme="dark"] body{color-scheme:dark}
-    :root[data-theme="dark"] .card{box-shadow:0 8px 22px rgba(0,0,0,.35)}
-    :root[data-theme="dark"] input,
-    :root[data-theme="dark"] select{background:#0b1220;color:var(--text);border-color:var(--line)}
-    :root[data-theme="dark"] button.secondary{background:#334155;color:#e5e7eb}
-    :root[data-theme="dark"] button.ghost{background:#1e293b;color:#bfdbfe}
-    :root[data-theme="dark"] .pill{background:#172554;color:#bfdbfe}
-    :root[data-theme="dark"] .pill.okPill{background:#052e16;color:#bbf7d0}
-    :root[data-theme="dark"] .pill.badPill{background:#450a0a;color:#fecaca}
-    :root[data-theme="dark"] .option{background:#0b1220;color:var(--text);border-color:var(--line)}
-    :root[data-theme="dark"] .option:hover{border-color:#60a5fa;background:#111c31}
-    :root[data-theme="dark"] .option.selected{border-color:#60a5fa;background:#172554;color:#dbeafe}
-    :root[data-theme="dark"] .option.correct{border-color:#22c55e;background:#052e16;color:#bbf7d0}
-    :root[data-theme="dark"] .option.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
-    :root[data-theme="dark"] .bar{background:#334155}
-    :root[data-theme="dark"] .stat,
-    :root[data-theme="dark"] .resultBox,
-    :root[data-theme="dark"] .weakItem,
-    :root[data-theme="dark"] .reviewItem,
-    :root[data-theme="dark"] .reviewOption{background:#0b1220;border-color:var(--line);color:var(--text)}
-    :root[data-theme="dark"] .resultBox.pass{background:#052e16;border-color:#166534;color:#bbf7d0}
-    :root[data-theme="dark"] .resultBox.fail{background:#450a0a;border-color:#991b1b;color:#fecaca}
-    :root[data-theme="dark"] .reviewOption.correct{border-color:#22c55e;background:#052e16;color:#bbf7d0}
-    :root[data-theme="dark"] .reviewOption.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
-    :root[data-theme="dark"] .explain{background:#0b1220;border-left-color:#60a5fa;color:var(--text)}
-    :root[data-theme="dark"] .toolbar{background:linear-gradient(180deg,rgba(15,23,42,0),var(--bg) 25%)}
+    html[data-theme="dark"] body{background:var(--bg);color:var(--text)}
+    html[data-theme="dark"] .card,
+    html[data-theme="dark"] .wrongCard{background:var(--card);border-color:var(--line);box-shadow:0 8px 22px rgba(0,0,0,.28)}
+    html[data-theme="dark"] input,
+    html[data-theme="dark"] select{background:#0b1220;color:var(--text);border-color:var(--line)}
+    html[data-theme="dark"] button.secondary{background:#374151;color:#f9fafb}
+    html[data-theme="dark"] button.ghost{background:#1e3a8a;color:#dbeafe}
+    html[data-theme="dark"] .pill{background:#1e3a8a;color:#dbeafe}
+    html[data-theme="dark"] .bar{background:#334155}
+    html[data-theme="dark"] .option{background:#0b1220;color:var(--text);border-color:var(--line)}
+    html[data-theme="dark"] .option:hover{border-color:#60a5fa;background:#172554}
+    html[data-theme="dark"] .option.selected{border-color:#60a5fa;background:#1e3a8a;color:#dbeafe}
+    html[data-theme="dark"] .option.correct{border-color:#22c55e;background:#052e16;color:#bbf7d0}
+    html[data-theme="dark"] .option.wrong{border-color:#ef4444;background:#450a0a;color:#fecaca}
+    html[data-theme="dark"] .stat,
+    html[data-theme="dark"] th,
+    html[data-theme="dark"] .summaryBox,
+    html[data-theme="dark"] .optionList li{background:#0b1220;border-color:var(--line)}
+    html[data-theme="dark"] td,
+    html[data-theme="dark"] th{border-bottom-color:var(--line)}
+    html[data-theme="dark"] .passBox{color:#bbf7d0;background:#052e16;border-color:#166534}
+    html[data-theme="dark"] .failBox{color:#fecaca;background:#450a0a;border-color:#991b1b}
+    html[data-theme="dark"] .optionList li.correctOpt{background:#052e16;border-color:#22c55e;color:#bbf7d0}
+    html[data-theme="dark"] .optionList li.wrongOpt{background:#450a0a;border-color:#ef4444;color:#fecaca}
+    html[data-theme="dark"] .scopeFilter{background:#0b1220;border-color:var(--line)}
+    html[data-theme="dark"] .scopeItem{background:#111827;border-color:var(--line)}
+    html[data-theme="dark"] .registerPanel{background:#0b1220;border-color:var(--line)}
+    html[data-theme="dark"] .registerPanel summary{color:#dbeafe}
+    html[data-theme="dark"] .authStatus.loginOk{background:#052e16;border-color:#22c55e;color:#bbf7d0}
+    html[data-theme="dark"] .authStatus.guest{background:#451a03;border-color:#92400e;color:#fed7aa}
+    html[data-theme="dark"] .authStatus.error{background:#450a0a;border-color:#ef4444;color:#fecaca}
+    html[data-theme="dark"] .configBox{background:#451a03;border-color:#92400e;color:#fed7aa}
+    html[data-theme="dark"] code{background:#0b1220;border-color:var(--line)}
 
-    :root[data-theme="dark"] .scopeCheck{background:#0b1220;border-color:var(--line);color:var(--text)}
-    :root[data-theme="dark"] .scopeCheck:hover{border-color:#60a5fa;background:#111c31}
-    :root[data-theme="dark"] a{color:#93c5fd}
+    html[data-theme="dark"] .leaderboardTable th{background:#0b1220;color:var(--muted)}
+    html[data-theme="dark"] .leaderboardTable th,
+    html[data-theme="dark"] .leaderboardTable td{border-bottom-color:var(--line)}
+    html[data-theme="dark"] .rankBadge{background:#1e3a8a;color:#dbeafe}
+    html[data-theme="dark"] .rankBadge.top1{background:#78350f;color:#fde68a}
+    html[data-theme="dark"] .rankBadge.top2{background:#374151;color:#e5e7eb}
+    html[data-theme="dark"] .rankBadge.top3{background:#7c2d12;color:#fed7aa}
+
     @media(max-width:650px){
       .wrap{padding:12px}
       .grid{grid-template-columns:repeat(2,1fr)}
       h1{font-size:21px}
       .qtitle{font-size:17px}
       button,input,select{width:100%}
-      .reviewHead .pill{width:auto}
-      .topBar{justify-content:stretch}
-      .themeBtn{width:100%}
+      .titleRow{flex-direction:column}
+      .themeToggle{width:100%}
+      .scopeHeader{flex-direction:column}
+      .scopeActions{width:100%}
+      .scopeActions button{width:calc(50% - 4px)}
+      .scopeGrid{grid-template-columns:1fr}
+      .scopeItem input{width:auto}
+      .authGrid{grid-template-columns:1fr}
     }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="topBar">
-    <button id="themeToggleBtn" class="ghost themeBtn" type="button">🌙 夜間模式</button>
-  </div>
   <div class="card">
-    <h1>AI應用規劃師｜中級｜模擬考練習 _ FB 雲橫介工程師 分享</h1>
-    <div class="muted">
-      題庫來源：Google Sheet。題目範圍可放入 IPAS 中級歷屆考題與 AI 生成模擬試題。
-      支援欄位名稱：<b>題號、範圍、題目類型、題目、選項1、選項2、選項3、選項4、正確答案、解析</b>。
+    <div class="titleRow">
+      <h1>AI應用規劃師｜初級｜模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</h1>
+      <button class="ghost themeToggle" id="themeToggleBtn" type="button">🌙 夜間模式</button>
     </div>
+    <div class="muted">
+      題庫來源：Google Sheet。錯題紀錄來源：Firebase Authentication + Cloud Firestore。<br>
+      題庫欄位支援：<b>題號、範圍、題目類型、題目、選項1、選項2、選項3、選項4、正確答案、解析</b>。
+    </div>
+  </div>
+
+  <div id="firebaseConfigNotice" class="card configBox hidden">
+    <h2>Firebase 尚未設定</h2>
+    <div class="small">
+      請先到程式碼最上方的 <code>firebaseConfig</code> 貼上你的 Firebase Web App 設定。未設定前仍可訪客練習，但會員登入與雲端錯題紀錄不會啟用。
+    </div>
+  </div>
+
+  <div id="memberBox" class="card">
+    <h2>會員錯題紀錄</h2>
+    <div id="authStatus" class="authStatus guest">Firebase 初始化中...</div>
+    <div class="authGrid">
+      <label>使用者帳號
+        <input id="loginUserInput" type="text" placeholder="例如：cloud001" autocomplete="username">
+      </label>
+      <label>密碼
+        <input id="loginPassInput" type="password" placeholder="請輸入密碼" autocomplete="current-password">
+      </label>
+      <label>顯示名稱 / 暱稱
+        <input id="registerDisplayInput" type="text" placeholder="註冊時可填，例如：雲橫介">
+      </label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="loginBtn" type="button">登入並啟用紀錄</button>
+      <button class="ghost" id="registerBtn" type="button">建立帳號並登入</button>
+      <button class="ghost" id="googleLoginBtn" type="button">Google 登入</button>
+      <button class="secondary" id="logoutBtn" type="button" disabled>登出</button>
+      <button class="ghost" id="historyWrongBtn" type="button">錯題內容複習</button>
+      <button class="ghost" id="leaderboardBtn" type="button">查看排行榜</button>
+    </div>
+    <div class="authHint muted small" style="margin-top:10px">
+      未登入就是訪客模式，可以練習但不會記錄雲端錯題。登入後 Firestore 只存錯題統計與成績統計；排行榜以「使用者帳號 + 顯示名稱」分開統計，換名稱不會覆蓋舊名稱紀錄。
+    </div>
+  </div>
+
+
+  <div id="leaderboardBox" class="card hidden">
+    <h2>綜合戰力排行榜</h2>
+    <p class="muted small leaderboardNote">
+      排行榜來源：Firebase Firestore 的 <code>leaderboard</code> 集合。主排序為「刷題次數最多」；同一會員若更換顯示名稱，會以不同名稱各自累積。
+    </p>
+    <div class="leaderboardControls">
+      <button class="ghost" id="reloadLeaderboardBtn" type="button">重新整理排行榜</button>
+      <button class="secondary" id="hideLeaderboardBtn" type="button">收合排行榜</button>
+    </div>
+    <div id="leaderboardTable" class="leaderboardTableWrap muted small">尚未載入排行榜。</div>
   </div>
 
   <div id="setup" class="card">
@@ -142,16 +231,22 @@
       <button class="ghost" id="reloadBtn">重新讀取題庫</button>
     </div>
 
-    <h3>練習範圍</h3>
-    <div class="scopeTools">
-      <button class="ghost" id="scopeAllBtn" type="button">全選範圍</button>
-      <button class="ghost" id="scopeClearBtn" type="button">清除勾選</button>
+    <div id="scopeFilterBox" class="scopeFilter hidden">
+      <div class="scopeHeader">
+        <div>
+          <b>選擇練習範圍</b>
+          <div id="scopeSummary" class="muted small">預設全選，可取消不想練的範圍。</div>
+        </div>
+        <div class="scopeActions">
+          <button class="ghost" id="selectAllScopesBtn" type="button">全選</button>
+          <button class="ghost" id="clearScopesBtn" type="button">清除</button>
+        </div>
+      </div>
+      <div id="scopeList" class="scopeGrid"></div>
     </div>
-    <div id="scopeFilterBox" class="scopeBox"></div>
-    <p id="scopeFilterMsg" class="muted small">讀取題庫後會自動產生範圍清單，預設全選。</p>
 
     <p id="loadMsg" class="muted">正在讀取題庫...</p>
-    <p class="muted small">總分 100 分，預設 70 分為通過門檻。放到 GitHub Pages 後，別人只要打開網址就能練習。</p>
+    <p class="muted small">Firebase 版可以部署到 Firebase Hosting，也可以放 GitHub Pages。題庫仍從公開 Google Sheet 讀取。</p>
   </div>
 
   <div id="quiz" class="card hidden">
@@ -164,45 +259,63 @@
     <div id="questionText" class="qtitle"></div>
     <div id="options"></div>
     <div id="feedback" class="muted"></div>
-    <div class="toolbar">
-      <div class="row" style="margin-top:14px">
-        <button id="submitBtn">確認答案</button>
-        <button class="secondary" id="nextBtn" disabled>下一題</button>
-      </div>
+    <div class="row" style="margin-top:14px">
+      <button id="submitBtn">確認答案</button>
+      <button class="secondary" id="nextBtn" disabled>下一題</button>
     </div>
   </div>
 
   <div id="finish" class="card hidden">
     <h2>測驗結果</h2>
-    <div id="passText" class="resultBox"></div>
+    <div id="finalStatus" class="summaryBox"></div>
+    <p id="finalSummary" class="muted"></p>
     <div class="grid">
-      <div class="stat"><b id="finalScore">0</b>總分</div>
+      <div class="stat"><b id="finalScore">0</b>得分</div>
+      <div class="stat"><b id="finalTotal">100</b>總分</div>
       <div class="stat"><b id="finalCorrect">0</b>答對</div>
       <div class="stat"><b id="finalWrong">0</b>答錯</div>
       <div class="stat"><b id="finalRate">0%</b>正確率</div>
-      <div class="stat"><b id="pointEach">0</b>每題分數</div>
+      <div class="stat"><b id="finalPoint">0</b>每題分數</div>
     </div>
-
-    <div id="weaknessBox" style="margin-top:14px"></div>
-
+    <div id="weakPoint" class="summaryBox"></div>
     <div class="row" style="margin-top:14px">
       <button id="againBtn">再考一次</button>
-      <button class="ghost" id="reviewBtn">查看錯題</button>
-      <button class="secondary" id="wrongOnlyBtn">只練錯題</button>
+      <button class="ghost" id="reviewBtn">查看本次錯題解析</button>
+      <button class="secondary" id="practiceWrongBtn">只練本次錯題</button>
+      <button class="ghost" id="historyWrongBtnFinish" type="button">錯題內容複習</button>
+      <button class="ghost" id="leaderboardBtnFinish" type="button">查看排行榜</button>
     </div>
   </div>
 
   <div id="review" class="card hidden">
-    <h2>錯題複習 / 預習重點</h2>
+    <h2>錯題複習與預習</h2>
+    <p class="muted small">這裡會列出你本次答錯的題目、你的答案、正確答案與解析。登入後，下次可按「錯題內容複習」練歷史錯題。</p>
     <div id="reviewTable"></div>
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
+// ===== 1) Firebase 設定：請到 Firebase Console → Project settings → Your apps → Web app 複製設定貼在這裡 =====
+const firebaseConfig = {
+  apiKey: "AIzaSyC7it5zGkIRFT4OdCyXx0uPG02i_gfZSw4",
+  authDomain: "ips-ai-application-middl-8d363.firebaseapp.com",
+  projectId: "ips-ai-application-middl-8d363",
+  storageBucket: "ips-ai-application-middl-8d363.firebasestorage.app",
+  messagingSenderId: "966651133791",
+  appId: "1:966651133791:web:fa03ac889cbedb335980ea",
+  measurementId: "G-VYQX3WJ14D"
+}
+
+// 使用者輸入 userName 時，底層會轉成 userName@ipas-exam.local 給 Firebase Auth 使用。
+// 不用真的存在這個網域，也不會寄信。
+const AUTH_EMAIL_DOMAIN = "ipas-exam.local";
+
+// ===== 2) 題庫 Google Sheet 設定 =====
 const SHEET_ID = "1G8siOLbJ6Has1GwZgeQ90HUXyAC82xY0IZn8pKOg0LY";
 const GID = "0";
-
-// 可自行調整：總分與通過門檻
 const TOTAL_SCORE = 100;
 const PASS_SCORE = 70;
 
@@ -213,32 +326,29 @@ let selected = null;
 let answers = [];
 let correctCount = 0;
 let mode = "instant";
-let scopeNames = [];
+let scopeMeta = [];
+let selectedScopes = new Set();
+let app = null;
+let auth = null;
+let db = null;
+let currentUser = null;
+let currentProfile = null;
 
 const $ = id => document.getElementById(id);
-const LETTERS = ["A","B","C","D"];
-
-function getSavedTheme(){
-  try{return localStorage.getItem("aiExamTheme") || "";}catch(e){return "";}
-}
-
-function saveTheme(theme){
-  try{localStorage.setItem("aiExamTheme", theme);}catch(e){}
-}
 
 function applyTheme(theme){
-  const finalTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", finalTheme);
-  saveTheme(finalTheme);
+  const safeTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", safeTheme);
+  localStorage.setItem("ai_exam_theme", safeTheme);
   const btn = $("themeToggleBtn");
   if(btn){
-    btn.textContent = finalTheme === "dark" ? "☀️ 日間模式" : "🌙 夜間模式";
-    btn.setAttribute("aria-label", finalTheme === "dark" ? "切換到日間模式" : "切換到夜間模式");
+    btn.textContent = safeTheme === "dark" ? "☀️ 日間模式" : "🌙 夜間模式";
+    btn.setAttribute("aria-label", safeTheme === "dark" ? "切換為日間模式" : "切換為夜間模式");
   }
 }
 
 function initTheme(){
-  const saved = getSavedTheme();
+  const saved = localStorage.getItem("ai_exam_theme");
   const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(saved || (prefersDark ? "dark" : "light"));
 }
@@ -248,6 +358,265 @@ function toggleTheme(){
   applyTheme(current === "dark" ? "light" : "dark");
 }
 
+function isFirebaseConfigured(){
+  return firebaseConfig &&
+    firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes("請貼上") &&
+    firebaseConfig.authDomain && !String(firebaseConfig.authDomain).includes("請貼上") &&
+    firebaseConfig.projectId && !String(firebaseConfig.projectId).includes("請貼上");
+}
+
+function setAuthStatus(text, type="guest"){
+  const status = $("authStatus");
+  if(!status) return;
+  status.className = `authStatus ${type}`;
+  status.textContent = text;
+}
+
+function updateAuthButtons(){
+  const loggedIn = !!currentUser;
+  const configured = !!auth && !!db;
+  ["loginBtn", "registerBtn", "googleLoginBtn"].forEach(id => { if($(id)) $(id).disabled = loggedIn || !configured; });
+  if($("logoutBtn")) $("logoutBtn").disabled = !loggedIn || !configured;
+}
+
+function initFirebase(){
+  if(!isFirebaseConfigured()){
+    $("firebaseConfigNotice").classList.remove("hidden");
+    setAuthStatus("目前：訪客模式。Firebase 尚未設定，可以練習，但不會寫入雲端錯題紀錄。", "guest");
+    updateAuthButtons();
+    return;
+  }
+
+  try{
+    app = firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+    auth.onAuthStateChanged(async user => {
+      currentUser = user || null;
+      if(!user) currentProfile = null;
+      updateAuthButtons();
+      if(user){
+        // 先把登入狀態顯示出來，避免 Firestore profile 建立失敗時，畫面仍停在訪客模式。
+        let fallbackName = user.displayName || (user.email ? String(user.email).split("@")[0] : "會員");
+        setAuthStatus(`目前：${fallbackName} 已登入。正在確認雲端錯題紀錄權限...`, "loginOk");
+
+        try{
+          const profile = await ensureUserProfile(user);
+          currentProfile = profile || {};
+          const name = profile.displayName || user.displayName || profile.userName || user.email || "會員";
+          setAuthStatus(`目前：${name} 已登入。考完後錯題會寫入 Firestore。`, "loginOk");
+        }catch(e){
+          console.error("Firestore profile 建立/讀取失敗", e);
+          setAuthStatus(`目前：${fallbackName} 已登入，但 Firestore 錯題紀錄權限異常：${firebaseErrorMessage(e)}`, "error");
+        }
+      }else{
+        setAuthStatus("目前：訪客模式。可以練習，但不會寫入雲端錯題紀錄。", "guest");
+      }
+    });
+  }catch(e){
+    console.error(e);
+    setAuthStatus("Firebase 初始化失敗：" + (e && e.message ? e.message : e), "error");
+  }
+}
+
+async function ensureUserProfile(user){
+  const ref = db.collection("users").doc(user.uid).collection("profile").doc("main");
+  const snap = await ref.get();
+  if(snap.exists) return snap.data() || {};
+
+  const userName = user.email ? String(user.email).split("@")[0] : user.uid;
+  const profile = {
+    uid: user.uid,
+    userName,
+    displayName: user.displayName || userName,
+    email: user.email || "",
+    providerId: user.providerData && user.providerData[0] ? user.providerData[0].providerId : "password",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await ref.set(profile, {merge:true});
+  return profile;
+}
+
+function normalizeUserName(name){
+  return String(name || "").trim().toLowerCase();
+}
+
+function validateUserName(name){
+  return /^[a-zA-Z0-9._-]{3,30}$/.test(String(name || ""));
+}
+
+function virtualEmailFromUserName(userName){
+  return `${normalizeUserName(userName)}@${AUTH_EMAIL_DOMAIN}`;
+}
+
+function firebaseErrorMessage(err){
+  const code = err && err.code ? err.code : "";
+  const map = {
+    "auth/email-already-in-use":"這個帳號已經被註冊。若剛剛註冊時看到網路錯誤，通常代表帳號其實已建立，請直接登入。",
+    "auth/invalid-email":"帳號格式不正確。",
+    "auth/weak-password":"密碼強度不足，請至少 6 碼。",
+    "auth/user-not-found":"找不到這個帳號。",
+    "auth/wrong-password":"密碼錯誤。",
+    "auth/invalid-credential":"帳號或密碼錯誤。",
+    "auth/network-request-failed":"Firebase 網路連線失敗或逾時。帳號可能已建立成功，系統會嘗試自動登入；若仍失敗，請重新整理後直接登入。",
+    "auth/too-many-requests":"短時間嘗試太多次，Firebase 暫時限制請求。請稍後再試。",
+    "auth/popup-closed-by-user":"你已關閉 Google 登入視窗。",
+    "auth/popup-blocked":"瀏覽器阻擋彈出登入視窗，請允許彈出視窗或改用重新導向登入。",
+    "auth/unauthorized-domain":"這個網域尚未加入 Firebase Authentication 的 Authorized domains。",
+    "auth/permission-denied":"Firestore 權限不足，請檢查 Firestore Rules。",
+    "permission-denied":"Firestore 權限不足，請檢查 Firestore Rules。",
+    "unavailable":"Firestore 目前連線失敗或服務暫時不可用，請稍後重試。",
+    "auth/operation-not-allowed":"Firebase Console 尚未啟用這個登入方式。"
+  };
+  return map[code] || (err && err.message ? err.message : String(err));
+}
+
+async function loginMember(){
+  if(!auth){ alert("Firebase 尚未設定，無法登入。"); return; }
+  const userName = normalizeUserName($("loginUserInput").value);
+  const password = String($("loginPassInput").value || "");
+  if(!validateUserName(userName)){
+    alert("帳號需為 3～30 碼，只能使用英文、數字、底線、連字號、小數點。");
+    return;
+  }
+  if(!password){ alert("請輸入密碼。"); return; }
+
+  try{
+    $("loginBtn").disabled = true;
+    setAuthStatus("登入驗證中...", "guest");
+    await auth.signInWithEmailAndPassword(virtualEmailFromUserName(userName), password);
+    $("loginPassInput").value = "";
+  }catch(e){
+    setAuthStatus("登入失敗：" + firebaseErrorMessage(e), "error");
+  }finally{
+    updateAuthButtons();
+  }
+}
+
+async function registerMember(){
+  if(!auth || !db){ alert("Firebase 尚未設定，無法建立帳號。"); return; }
+
+  const userName = normalizeUserName($("loginUserInput").value);
+  const password = String($("loginPassInput").value || "");
+  const displayName = String($("registerDisplayInput").value || userName).trim() || userName;
+  const email = virtualEmailFromUserName(userName);
+
+  if(!validateUserName(userName)){
+    alert("帳號需為 3～30 碼，只能使用英文、數字、底線、連字號、小數點。\n請在『使用者帳號』欄位輸入。");
+    return;
+  }
+  if(password.length < 6){ alert("密碼至少 6 碼。請在『密碼』欄位輸入。"); return; }
+
+  $("registerBtn").disabled = true;
+  setAuthStatus("建立帳號中...", "guest");
+
+  let cred = null;
+
+  // 第一步：建立 Firebase Authentication 帳號。
+  // 注意：有時候網路逾時時，Firebase 後端其實已經建立成功，但前端仍會丟出 auth/network-request-failed。
+  // 所以這裡不能直接顯示「建立失敗」，而是會再嘗試登入確認。
+  try{
+    cred = await auth.createUserWithEmailAndPassword(email, password);
+    setAuthStatus(`帳號 ${userName} 已建立成功，正在寫入會員資料...`, "loginOk");
+  }catch(e){
+    console.warn("建立帳號流程回傳錯誤，準備檢查是否其實已建立成功", e);
+
+    const mayAlreadyCreated = e && (
+      e.code === "auth/network-request-failed" ||
+      e.code === "auth/email-already-in-use"
+    );
+
+    if(mayAlreadyCreated){
+      try{
+        setAuthStatus("帳號可能已建立成功，正在嘗試直接登入確認...", "guest");
+        cred = await auth.signInWithEmailAndPassword(email, password);
+        setAuthStatus(`帳號 ${userName} 已存在或已建立成功，已自動登入。正在補寫會員資料...`, "loginOk");
+      }catch(loginError){
+        console.error("註冊後自動登入確認失敗", loginError);
+        const prefix = e.code === "auth/email-already-in-use"
+          ? "這個帳號已經存在，但無法用目前密碼登入："
+          : "建立帳號時網路異常，且自動登入確認失敗：";
+        setAuthStatus(prefix + firebaseErrorMessage(loginError) + " 請重新整理頁面後，改按『登入並啟用紀錄』。", "error");
+        updateAuthButtons();
+        return;
+      }
+    }else{
+      setAuthStatus("建立帳號失敗：" + firebaseErrorMessage(e), "error");
+      updateAuthButtons();
+      return;
+    }
+  }
+
+  const user = cred && cred.user ? cred.user : auth.currentUser;
+  if(!user){
+    setAuthStatus("帳號建立流程完成，但目前瀏覽器沒有取得登入狀態。請重新整理後直接登入。", "error");
+    updateAuthButtons();
+    return;
+  }
+
+  // 第二步：更新 Firebase Auth 的 displayName。失敗不代表帳號建立失敗。
+  try{
+    await user.updateProfile({displayName});
+  }catch(e){
+    console.warn("更新暱稱失敗，但帳號已建立/已登入", e);
+  }
+
+  // 第三步：寫入 Firestore profile。失敗不代表帳號建立失敗，只代表會員資料或錯題雲端紀錄暫時有問題。
+  try{
+    const ref = db.collection("users").doc(user.uid).collection("profile").doc("main");
+    const profilePayload = {
+      uid: user.uid,
+      userName,
+      displayName,
+      email: user.email || "",
+      providerId: "password",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    await ref.set(profilePayload, {merge:true});
+    currentProfile = {...profilePayload};
+
+    $("loginPassInput").value = "";
+    setAuthStatus(`目前：${displayName} 已登入。會員資料已寫入，考完後錯題會寫入 Firestore。`, "loginOk");
+  }catch(e){
+    console.error("Firestore profile 寫入失敗，但帳號已建立/已登入", e);
+    $("loginPassInput").value = "";
+    setAuthStatus(`目前：${displayName} 已登入，但會員資料寫入 Firestore 失敗：${firebaseErrorMessage(e)}。可以先練習；若錯題無法同步，請檢查 Firestore API 與 Rules。`, "error");
+  }finally{
+    updateAuthButtons();
+  }
+}
+async function loginWithGoogle(){
+  if(!auth || !db){ alert("Firebase 尚未設定，無法使用 Google 登入。"); return; }
+  try{
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await auth.signInWithPopup(provider);
+  }catch(e){
+    console.error("Google 登入失敗", e);
+    // 手機瀏覽器或部分瀏覽器可能阻擋 popup，改用 redirect 登入。
+    if(e && (e.code === "auth/popup-blocked" || e.code === "auth/cancelled-popup-request")){
+      try{
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
+        await auth.signInWithRedirect(provider);
+        return;
+      }catch(re){
+        setAuthStatus("Google 重新導向登入失敗：" + firebaseErrorMessage(re), "error");
+        return;
+      }
+    }
+    setAuthStatus("Google 登入失敗：" + firebaseErrorMessage(e), "error");
+  }
+}
+
+async function logoutMember(){
+  if(!auth) return;
+  await auth.signOut();
+}
 
 function normalizeHeader(h){
   return String(h || "").trim().toLowerCase()
@@ -282,7 +651,7 @@ function rowsToQuestions(rows){
   const header = rows[0].map(x => String(x || "").trim());
   const dataRows = rows.slice(1).filter(r => r.some(x => String(x||"").trim()));
 
-  return dataRows.map(r => {
+  return dataRows.map((r, rowIndex) => {
     const obj = {};
     header.forEach((h,i)=>obj[h]=r[i] || "");
 
@@ -301,7 +670,7 @@ function rowsToQuestions(rows){
     const ans = pick(obj, ["正確答案","答案","正解","answer","correct"]);
     const exp = pick(obj, ["解析","說明","explanation"]);
 
-    return {no, scope, type, q, opts, ans, exp};
+    return {no, scope, type, q, opts, ans, exp, rowIndex: rowIndex + 2};
   }).filter(x => x.q && x.opts.length >= 2 && x.ans);
 }
 
@@ -309,108 +678,115 @@ function shuffle(arr){
   return [...arr].sort(()=>Math.random()-0.5);
 }
 
-
-function scopeKey(scope){
-  const s = String(scope || "").trim();
-  return s || "未分類";
+function scopeName(item){
+  const name = String(item.scope || "未分類").trim();
+  return name || "未分類";
 }
 
-function getScopeCounts(){
-  const counter = {};
+function buildScopeMeta(){
+  const counts = {};
   bank.forEach(item => {
-    const key = scopeKey(item.scope);
-    counter[key] = (counter[key] || 0) + 1;
+    const name = scopeName(item);
+    counts[name] = (counts[name] || 0) + 1;
   });
-  return counter;
+  return Object.entries(counts)
+    .map(([name, count]) => ({name, count}))
+    .sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
 }
 
-function renderScopeFilters(){
-  const box = $("scopeFilterBox");
-  if(!box) return;
+function getSelectedQuestions(){
+  if(!bank.length || !selectedScopes.size) return [];
+  return bank.filter(item => selectedScopes.has(scopeName(item)));
+}
 
-  box.innerHTML = "";
-  const counts = getScopeCounts();
-  scopeNames = Object.keys(counts).sort((a,b)=>a.localeCompare(b, "zh-Hant"));
+function updateScopeSummary(){
+  const summary = $("scopeSummary");
+  if(!summary) return;
+  const selectedQuestionCount = getSelectedQuestions().length;
+  const selectedScopeCount = selectedScopes.size;
+  const totalScopeCount = scopeMeta.length;
 
-  if(!scopeNames.length){
-    $("scopeFilterMsg").textContent = "尚未讀到範圍資料。";
+  if(!selectedScopeCount){
+    summary.textContent = `尚未選擇範圍，請至少勾選一個範圍。`;
+  }else{
+    summary.textContent = `已選 ${selectedScopeCount} / ${totalScopeCount} 個範圍，共 ${selectedQuestionCount} 題。預設全選，可取消不想練的範圍。`;
+  }
+}
+
+function syncCountInputByScope(){
+  const pool = getSelectedQuestions();
+  const countInput = $("countInput");
+  const startBtn = $("startBtn");
+  const maxCount = pool.length;
+
+  if(!countInput || !startBtn) return;
+
+  if(maxCount <= 0){
+    countInput.max = 0;
+    countInput.value = 0;
+    startBtn.disabled = true;
+    updateScopeSummary();
     return;
   }
 
-  scopeNames.forEach(name => {
-    const label = document.createElement("label");
-    label.className = "scopeCheck";
-
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.className = "scopeInput";
-    input.value = name;
-    input.checked = true;
-    input.addEventListener("change", updateFilteredCount);
-
-    const textWrap = document.createElement("span");
-    textWrap.textContent = name;
-
-    const small = document.createElement("small");
-    small.textContent = `${counts[name]} 題`;
-    textWrap.appendChild(small);
-
-    label.appendChild(input);
-    label.appendChild(textWrap);
-    box.appendChild(label);
-  });
-
-  updateFilteredCount();
+  const current = Number(countInput.value || 20);
+  countInput.max = maxCount;
+  countInput.value = Math.min(Math.max(current, 1), maxCount);
+  startBtn.disabled = false;
+  updateScopeSummary();
 }
 
-function getSelectedScopes(){
-  return [...document.querySelectorAll(".scopeInput:checked")].map(input => input.value);
-}
-
-function getFilteredBank(){
-  const selectedScopes = new Set(getSelectedScopes());
-  if(!selectedScopes.size) return [];
-  return bank.filter(item => selectedScopes.has(scopeKey(item.scope)));
-}
-
-function updateFilteredCount(){
-  if(!$("scopeFilterMsg")) return;
-
-  const selectedScopes = getSelectedScopes();
-  const pool = getFilteredBank();
-  const max = Math.max(pool.length, 1);
-  const current = Number($("countInput").value || 20);
-
-  $("countInput").max = max;
-  $("countInput").value = Math.min(current, max);
-
-  $("scopeFilterMsg").textContent =
-    selectedScopes.length
-      ? `目前已選 ${selectedScopes.length} 個範圍，共 ${pool.length} 題可抽。`
-      : "目前沒有勾選範圍，請至少選一個範圍才能開始。";
+function updateScopeSelection(){
+  selectedScopes = new Set([...document.querySelectorAll(".scopeCheckbox:checked")].map(cb => cb.value));
+  syncCountInputByScope();
 }
 
 function setAllScopes(checked){
-  document.querySelectorAll(".scopeInput").forEach(input => input.checked = checked);
-  updateFilteredCount();
+  document.querySelectorAll(".scopeCheckbox").forEach(cb => cb.checked = checked);
+  updateScopeSelection();
+}
+
+function renderScopeFilter(){
+  const box = $("scopeFilterBox");
+  const list = $("scopeList");
+  if(!box || !list) return;
+
+  scopeMeta = buildScopeMeta();
+  selectedScopes = new Set(scopeMeta.map(s => s.name));
+
+  if(!scopeMeta.length){
+    box.classList.add("hidden");
+    list.innerHTML = "";
+    syncCountInputByScope();
+    return;
+  }
+
+  list.innerHTML = scopeMeta.map(s => `
+    <label class="scopeItem" title="${escapeHtml(s.name)}">
+      <input type="checkbox" class="scopeCheckbox" value="${escapeHtml(s.name)}" checked>
+      <span>${escapeHtml(s.name)}</span>
+      <span class="scopeCount">${s.count} 題</span>
+    </label>
+  `).join("");
+
+  box.classList.remove("hidden");
+  document.querySelectorAll(".scopeCheckbox").forEach(cb => cb.onchange = updateScopeSelection);
+  syncCountInputByScope();
 }
 
 function answerIndex(item){
   const raw = String(item.ans || "").trim();
   const a = raw.toUpperCase();
+  const letters = ["A","B","C","D"];
 
-  // A/B/C/D
-  if(LETTERS.includes(a)) return LETTERS.indexOf(a);
+  if(letters.includes(a)) return letters.indexOf(a);
 
-  // 1/2/3/4、選項1、答案1
   const numMatch = raw.match(/[1-4]/);
   if(numMatch && raw.length <= 8) return Number(numMatch[0]) - 1;
 
-  // (A)、A.、答案A
   const letterMatch = a.match(/[ABCD]/);
-  if(letterMatch && a.length <= 8) return LETTERS.indexOf(letterMatch[0]);
+  if(letterMatch && a.length <= 8) return letters.indexOf(letterMatch[0]);
 
-  // 正確答案直接填完整選項文字
   const idx = item.opts.findIndex(o => String(o).trim() === raw);
   return idx >= 0 ? idx : -1;
 }
@@ -422,7 +798,7 @@ function loadGoogleSheetByJSONP(){
 
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("讀取逾時。請確認 Google Sheet 權限為「知道連結的任何人可以檢視」。"));
+      reject(new Error("讀取逾時。請確認 Google Sheet 權限為『知道連結的任何人可以檢視』。"));
     }, 15000);
 
     function cleanup(){
@@ -458,9 +834,8 @@ async function loadBank(){
       throw new Error("讀不到題目，請確認第一列欄位包含：題號、範圍、題目類型、題目、選項1、選項2、選項3、選項4、正確答案、解析。");
     }
 
-    $("loadMsg").textContent = `題庫讀取成功：共 ${bank.length} 題。`;
-    renderScopeFilters();
-    updateFilteredCount();
+    renderScopeFilter();
+    $("loadMsg").textContent = `題庫讀取成功：共 ${bank.length} 題，已預設全選 ${scopeMeta.length} 個範圍。`;
   }catch(e){
     $("loadMsg").innerHTML =
       `讀取失敗：${escapeHtml(e.message)}<br>` +
@@ -468,42 +843,29 @@ async function loadBank(){
   }
 }
 
-function resetQuizState(){
-  index = 0;
-  selected = null;
-  answers = [];
-  correctCount = 0;
+function startQuiz(sourceQuestions = null){
+  if(!bank.length){ alert("題庫尚未讀取成功"); return; }
+
+  if(Array.isArray(sourceQuestions) && sourceQuestions.length){
+    quiz = shuffle(sourceQuestions);
+    mode = "instant";
+  }else{
+    mode = $("modeInput").value;
+    const pool = getSelectedQuestions();
+    if(!pool.length){
+      alert("請至少勾選一個要練習的範圍");
+      return;
+    }
+    const count = Math.min(Number($("countInput").value || 20), pool.length);
+    quiz = shuffle(pool).slice(0,count);
+  }
+
+  index = 0; selected = null; answers = []; correctCount = 0;
   $("setup").classList.add("hidden");
   $("finish").classList.add("hidden");
   $("review").classList.add("hidden");
   $("quiz").classList.remove("hidden");
   renderQuestion();
-}
-
-function startQuiz(){
-  if(!bank.length){ alert("題庫尚未讀取成功"); return; }
-
-  const pool = getFilteredBank();
-  if(!pool.length){
-    alert("請至少勾選一個有題目的範圍");
-    return;
-  }
-
-  mode = $("modeInput").value;
-  const count = Math.min(Number($("countInput").value || 20), pool.length);
-  quiz = shuffle(pool).slice(0,count);
-  resetQuizState();
-}
-
-function startWrongQuiz(){
-  const wrongItems = answers.filter(a => !a.isCorrect).map(a => a.item);
-  if(!wrongItems.length){
-    alert("這次沒有錯題，不需要重練。");
-    return;
-  }
-  mode = "instant"; // 錯題重練預設立即看解析，方便複習
-  quiz = shuffle(wrongItems);
-  resetQuizState();
 }
 
 function renderQuestion(){
@@ -512,23 +874,22 @@ function renderQuestion(){
   $("progressText").textContent = `第 ${index+1} / ${quiz.length} 題`;
   $("scoreText").textContent = `目前答對：${correctCount}`;
   $("progressBar").style.width = `${((index)/quiz.length)*100}%`;
-
   const meta = [
     item.no ? `題號：${item.no}` : "",
     item.scope ? `範圍：${item.scope}` : "",
     item.type ? `題型：${item.type}` : ""
   ].filter(Boolean).join("　");
-
   $("questionText").textContent = (meta ? meta + "\n\n" : "") + item.q;
   $("feedback").innerHTML = "";
   $("submitBtn").disabled = false;
   $("nextBtn").disabled = true;
 
+  const letters = ["A","B","C","D"];
   $("options").innerHTML = "";
   item.opts.forEach((opt,i)=>{
     const btn = document.createElement("button");
     btn.className = "option";
-    btn.textContent = `${LETTERS[i]}. ${opt}`;
+    btn.textContent = `${letters[i]}. ${opt}`;
     btn.onclick = () => {
       selected = i;
       [...document.querySelectorAll(".option")].forEach(x=>x.classList.remove("selected"));
@@ -540,11 +901,9 @@ function renderQuestion(){
 
 function submitAnswer(){
   if(selected === null){ alert("請先選一個答案"); return; }
-
   const item = quiz[index];
   const correct = answerIndex(item);
-  const isCorrect = correct >= 0 && selected === correct;
-
+  const isCorrect = selected === correct;
   answers.push({item, selected, correct, isCorrect});
   if(isCorrect) correctCount++;
 
@@ -557,13 +916,9 @@ function submitAnswer(){
       if(i === correct) btn.classList.add("correct");
       if(i === selected && !isCorrect) btn.classList.add("wrong");
     });
-
-    const correctText = correct >= 0
-      ? `${LETTERS[correct]}．${item.opts[correct]}`
-      : item.ans;
-
+    const letters = ["A","B","C","D"];
     $("feedback").innerHTML =
-      `<div class="result ${isCorrect ? "ok" : "bad"}">${isCorrect ? "答對了！" : "答錯了！"} 正解：${escapeHtml(correctText)}</div>` +
+      `<div class="result ${isCorrect ? "ok" : "bad"}">${isCorrect ? "答對了！" : "答錯了！"} 正解：${correct >= 0 ? letters[correct] : escapeHtml(item.ans)}</div>` +
       (item.exp ? `<p><b>解析：</b>${escapeHtml(item.exp)}</p>` : "");
   }
 }
@@ -579,117 +934,501 @@ function finishQuiz(){
   $("finish").classList.remove("hidden");
   $("progressBar").style.width = `100%`;
 
-  const total = quiz.length;
+  const total = quiz.length || 1;
   const wrongCount = total - correctCount;
-  const rate = total ? Math.round((correctCount / total) * 100) : 0;
-  const score = total ? Math.round((correctCount / total) * TOTAL_SCORE) : 0;
-  const pointEach = total ? (TOTAL_SCORE / total).toFixed(2) : "0";
+  const rawScore = (correctCount / total) * TOTAL_SCORE;
+  const score = Math.round(rawScore * 10) / 10;
+  const rate = Math.round((correctCount / total) * 100);
+  const pointPerQuestion = Math.round((TOTAL_SCORE / total) * 10) / 10;
+  const passed = score >= PASS_SCORE;
 
-  $("finalScore").textContent = `${score}/${TOTAL_SCORE}`;
+  $("finalScore").textContent = score;
+  $("finalTotal").textContent = TOTAL_SCORE;
   $("finalCorrect").textContent = correctCount;
   $("finalWrong").textContent = wrongCount;
   $("finalRate").textContent = `${rate}%`;
-  $("pointEach").textContent = pointEach;
+  $("finalPoint").textContent = pointPerQuestion;
 
-  const pass = score >= PASS_SCORE;
-  $("passText").className = `resultBox ${pass ? "pass" : "fail"}`;
-  $("passText").innerHTML = pass
-    ? `<b>結果：通過門檻</b><br>本次 ${score} 分，已達 ${PASS_SCORE} 分門檻。可以繼續加強錯題，讓分數更穩。`
-    : `<b>結果：未達門檻</b><br>本次 ${score} 分，距離 ${PASS_SCORE} 分還差 ${PASS_SCORE - score} 分。建議先看下方錯題與弱點分類。`;
+  $("finalStatus").className = `summaryBox ${passed ? "passBox" : "failBox"}`;
+  $("finalStatus").innerHTML = passed
+    ? `<b>結果：通過門檻</b>，本次 ${score} / ${TOTAL_SCORE} 分。`
+    : `<b>結果：未達門檻</b>，本次 ${score} / ${TOTAL_SCORE} 分，建議先複習錯題再重考。`;
 
-  renderWeakness();
-  reviewWrong(true); // 考完自動顯示錯題，方便預習
+  $("finalSummary").innerHTML =
+    `本次共 ${total} 題，每題約 ${pointPerQuestion} 分；答對 ${correctCount} 題、答錯 ${wrongCount} 題。` +
+    `設定通過門檻為 ${PASS_SCORE} 分，可在程式中的 <b>PASS_SCORE</b> 自行調整。`;
+
+  renderWeakPoint();
+  $("practiceWrongBtn").disabled = wrongCount === 0;
+  reviewWrong();
+  saveWrongStatsIfLoggedIn();
+  saveExamResultIfLoggedIn({score, total, correctCount, wrongCount, rate, mode});
 }
 
-function renderWeakness(){
+function renderWeakPoint(){
   const wrong = answers.filter(a => !a.isCorrect);
   if(!wrong.length){
-    $("weaknessBox").innerHTML = `<h3>弱點分析</h3><p class="muted">本次沒有錯題，表現很穩。可以提高題數或改用考試模式挑戰。</p>`;
+    $("weakPoint").innerHTML = "<b>弱點分析：</b>這次沒有錯題，狀態很好。可以加大題數或切換考試模式挑戰。";
     return;
   }
 
-  const counter = {};
+  const countMap = {};
   wrong.forEach(a => {
     const key = a.item.scope || a.item.type || "未分類";
-    counter[key] = (counter[key] || 0) + 1;
+    countMap[key] = (countMap[key] || 0) + 1;
   });
 
-  const items = Object.entries(counter).sort((a,b)=>b[1]-a[1]);
-  $("weaknessBox").innerHTML = `
-    <h3>弱點分析</h3>
-    <p class="muted">錯題主要集中在以下範圍，建議優先複習：</p>
-    <div class="weakList">
-      ${items.map(([name,count]) => `
-        <div class="weakItem">
-          <b>${escapeHtml(name)}</b>
-          <span class="bad">${count} 題錯誤</span>
-        </div>
-      `).join("")}
-    </div>
-  `;
+  const ranking = Object.entries(countMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([name,count])=>`${escapeHtml(name)}：${count} 題`)
+    .join("、");
+
+  $("weakPoint").innerHTML = `<b>弱點分析：</b>${ranking}<br><span class="muted small">建議先看下方錯題解析，再按「只練本次錯題」或「錯題內容複習」重跑一輪。</span>`;
 }
 
-function reviewWrong(autoOpen=false){
+function optionListHtml(a){
+  const letters = ["A","B","C","D"];
+  return `<ul class="optionList">${a.item.opts.map((opt,i)=>{
+    const cls = i === a.correct ? "correctOpt" : (i === a.selected ? "wrongOpt" : "");
+    return `<li class="${cls}">${letters[i] || "-"}. ${escapeHtml(opt)}</li>`;
+  }).join("")}</ul>`;
+}
+
+function reviewWrong(){
   const wrong = answers.filter(a => !a.isCorrect);
   $("review").classList.remove("hidden");
-
   if(!wrong.length){
     $("reviewTable").innerHTML = "<p class='muted'>恭喜，沒有錯題。</p>";
-    $("wrongOnlyBtn").disabled = true;
     return;
   }
 
-  $("wrongOnlyBtn").disabled = false;
+  const letters = ["A","B","C","D"];
+  $("reviewTable").innerHTML = wrong.map((a,i)=>{
+    const meta = [
+      a.item.no ? "題號：" + a.item.no : "",
+      a.item.scope ? "範圍：" + a.item.scope : "",
+      a.item.type ? "題型：" + a.item.type : ""
+    ].filter(Boolean).join("　");
 
-  $("reviewTable").innerHTML = `
-    <p class="muted">共 ${wrong.length} 題錯題。先看解析，再按「只練錯題」重跑一輪，會比較有感。</p>
-    ${wrong.map((a,idx)=>renderReviewItem(a, idx)).join("")}
-  `;
+    const yourAnswer = `${letters[a.selected] || "-"}．${escapeHtml(a.item.opts[a.selected] || "")}`;
+    const correctAnswer = a.correct >= 0
+      ? `${letters[a.correct] || "-"}．${escapeHtml(a.item.opts[a.correct] || "")}`
+      : escapeHtml(a.item.ans || "正確答案格式無法判讀");
 
-  if(!autoOpen){
-    $("review").scrollIntoView({behavior:"smooth", block:"start"});
+    return `<div class="wrongCard">
+      <h3>錯題 ${i+1}：${escapeHtml(a.item.q)}</h3>
+      ${meta ? `<div class="muted small">${escapeHtml(meta)}</div>` : ""}
+      ${optionListHtml(a)}
+      <div class="answerLine bad"><b>你的答案：</b>${yourAnswer}</div>
+      <div class="answerLine ok"><b>正確答案：</b>${correctAnswer}</div>
+      <div class="answerLine"><b>解析：</b>${escapeHtml(a.item.exp || "這題目前沒有解析，建議回題庫補上解析欄位。")}</div>
+    </div>`;
+  }).join("");
+}
+
+function practiceWrong(){
+  const wrongItems = answers.filter(a => !a.isCorrect).map(a => a.item);
+  if(!wrongItems.length){
+    alert("這次沒有錯題可以練習");
+    return;
+  }
+  startQuiz(wrongItems);
+}
+
+function questionNo(item){
+  return String((item && item.no) || "").trim();
+}
+
+function fallbackQuestionKey(item){
+  const raw = `${item.scope || ""}|${item.q || ""}`;
+  let hash = 0;
+  for(let i=0;i<raw.length;i++){
+    hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+    hash |= 0;
+  }
+  return "QHASH_" + Math.abs(hash).toString(36);
+}
+
+function getQuestionKey(item){
+  return questionNo(item) || fallbackQuestionKey(item);
+}
+
+function safeDocId(key){
+  return "q_" + encodeURIComponent(String(key || "")).replace(/%/g, "_");
+}
+
+function selectedAnswerText(answerObj){
+  const letters = ["A","B","C","D"];
+  const idx = answerObj.selected;
+  return `${letters[idx] || "-"}．${answerObj.item.opts[idx] || ""}`;
+}
+
+function correctAnswerText(answerObj){
+  const letters = ["A","B","C","D"];
+  const idx = answerObj.correct;
+  if(idx >= 0) return `${letters[idx] || "-"}．${answerObj.item.opts[idx] || ""}`;
+  return String(answerObj.item.ans || "");
+}
+
+function buildWrongStatsPayload(){
+  return answers.filter(a => !a.isCorrect).map(a => ({
+    questionNo: getQuestionKey(a.item),
+    scope: a.item.scope || "未分類",
+    type: a.item.type || "",
+    lastSelected: selectedAnswerText(a),
+    correctAnswer: correctAnswerText(a)
+  })).filter(x => x.questionNo);
+}
+
+
+function getDisplayNameForLeaderboard(){
+  // 排行榜顯示名稱優先順序：
+  // 1. 目前登入時 profile 內的 displayName
+  // 2. Firebase Auth 的 displayName
+  // 3. profile 內的 userName
+  // 4. email 前綴
+  if(currentProfile && currentProfile.displayName) return String(currentProfile.displayName);
+  if(currentUser && currentUser.displayName) return String(currentUser.displayName);
+  if(currentProfile && currentProfile.userName) return String(currentProfile.userName);
+  if(currentUser && currentUser.email) return String(currentUser.email).split("@")[0];
+  return "匿名會員";
+}
+
+function normalizeLeaderboardName(name){
+  const cleaned = String(name || "匿名會員")
+    .trim()
+    .replace(/\s+/g, " ");
+  return cleaned || "匿名會員";
+}
+
+function leaderboardNameKey(name){
+  // 用名稱產生穩定 key；同一個 uid + 同一個名稱會累積到同一筆。
+  // 換不同名稱會變成另一筆，不會覆蓋原本名稱的排行榜資料。
+  return normalizeLeaderboardName(name).toLocaleLowerCase("zh-Hant");
+}
+
+function safeLeaderboardDocId(uid, nameKey){
+  const raw = `${uid || "unknown"}__${nameKey || "anonymous"}`;
+  return "lb_" + encodeURIComponent(raw).replace(/%/g, "_").slice(0, 1400);
+}
+
+
+function attemptScoreFromAttempts(attemptCount){
+  // 刷題投入分：使用 log 曲線，避免單純狂刷題就壓過真正的分數表現。
+  // 1 次有基本分，30 次左右接近滿分，之後邊際效益遞減。
+  const count = Math.max(0, Number(attemptCount || 0));
+  const capped = Math.min(count, 30);
+  if(capped <= 0) return 0;
+  return Math.round((Math.log1p(capped) / Math.log1p(30)) * 1000) / 10;
+}
+
+function calculateRankScore({avgScore=0, bestScore=0, attemptScore=0, lastRate=0} = {}){
+  // 綜合戰力分數，滿分約 100。
+  // 平均分 45%：代表穩定度
+  // 最高分 25%：代表上限
+  // 刷題投入 20%：代表練習量，但用 log 限制刷題灌水
+  // 最近表現 10%：代表近期狀態
+  const value =
+    Number(avgScore || 0) * 0.45 +
+    Number(bestScore || 0) * 0.25 +
+    Number(attemptScore || 0) * 0.20 +
+    Number(lastRate || 0) * 0.10;
+  return Math.round(value * 10) / 10;
+}
+
+function rankScoreFromRow(row){
+  const attemptCount = Number(row && row.attemptCount || 0);
+  const attemptScore = Number(row && row.attemptScore || attemptScoreFromAttempts(attemptCount));
+  return calculateRankScore({
+    avgScore: Number(row && row.avgScore || 0),
+    bestScore: Number(row && row.bestScore || 0),
+    attemptScore,
+    lastRate: Number(row && row.lastRate || 0)
+  });
+}
+
+async function saveExamResultIfLoggedIn(result){
+  if(!currentUser || !db) return;
+
+  const box = $("weakPoint");
+  const displayName = normalizeLeaderboardName(getDisplayNameForLeaderboard());
+  const nameKey = leaderboardNameKey(displayName);
+  const leaderboardDocId = safeLeaderboardDocId(currentUser.uid, nameKey);
+
+  const now = firebase.firestore.FieldValue.serverTimestamp();
+  const numericScore = Number(result.score || 0);
+  const numericTotal = Number(result.total || 0);
+  const numericCorrect = Number(result.correctCount || 0);
+  const numericWrong = Number(result.wrongCount || 0);
+  const numericRate = Number(result.rate || 0);
+
+  // 重要：排行榜不再只用 uid 當文件 ID。
+  // 舊版：leaderboard/{uid} → 同一個帳號換名稱會互相覆蓋。
+  // 新版：leaderboard/{uid + displayNameKey} → 同一帳號不同名稱各自統計。
+  const publicRef = db.collection("leaderboard").doc(leaderboardDocId);
+  const privateRef = db.collection("users").doc(currentUser.uid).collection("examStatsByName").doc(safeDocId(nameKey));
+  const latestPrivateRef = db.collection("users").doc(currentUser.uid).collection("examStats").doc("main");
+
+  try{
+    await db.runTransaction(async tx => {
+      const publicSnap = await tx.get(publicRef);
+      const old = publicSnap.exists ? (publicSnap.data() || {}) : {};
+      const oldAttempts = Number(old.attemptCount || 0);
+      const oldTotalScore = Number(old.totalScore || 0);
+      const newAttempts = oldAttempts + 1;
+      const newTotalScore = oldTotalScore + numericScore;
+      const bestScore = Math.max(Number(old.bestScore || 0), numericScore);
+      const avgScore = Math.round((newTotalScore / newAttempts) * 10) / 10;
+      const attemptScore = attemptScoreFromAttempts(newAttempts);
+      const rankScore = calculateRankScore({
+        avgScore,
+        bestScore,
+        attemptScore,
+        lastRate: numericRate
+      });
+
+      const payload = {
+        uid: currentUser.uid,
+        ownerUid: currentUser.uid,
+        leaderboardDocId,
+        displayName,
+        displayNameKey: nameKey,
+        providerId: currentUser.providerData && currentUser.providerData[0] ? currentUser.providerData[0].providerId : "",
+        attemptCount: newAttempts,
+        totalScore: newTotalScore,
+        avgScore,
+        bestScore,
+        attemptScore,
+        rankScore,
+        rankScoreVersion: "weighted_v1_avg45_best25_attempt20_recent10",
+        lastScore: numericScore,
+        lastTotal: numericTotal,
+        lastCorrect: numericCorrect,
+        lastWrong: numericWrong,
+        lastRate: numericRate,
+        lastMode: result.mode || "",
+        lastExamAt: now,
+        updatedAt: now
+      };
+
+      if(!publicSnap.exists){
+        payload.createdAt = now;
+      }
+
+      tx.set(publicRef, payload, {merge:true});
+      tx.set(privateRef, payload, {merge:true});
+      tx.set(latestPrivateRef, {
+        uid: currentUser.uid,
+        latestLeaderboardDocId: leaderboardDocId,
+        latestDisplayName: displayName,
+        latestScore: numericScore,
+        latestTotal: numericTotal,
+        latestCorrect: numericCorrect,
+        latestWrong: numericWrong,
+        latestRate: numericRate,
+        latestRankScore: rankScore,
+        latestAttemptScore: attemptScore,
+        latestMode: result.mode || "",
+        lastExamAt: now,
+        updatedAt: now
+      }, {merge:true});
+    });
+
+    if(box) box.innerHTML += `<br><span class="muted small">已同步本次成績到排行榜統計：${escapeHtml(displayName)}。</span>`;
+  }catch(e){
+    console.error(e);
+    if(box) box.innerHTML += `<br><span class="muted small">成績排行榜同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
   }
 }
 
-function renderReviewItem(a, idx){
-  const item = a.item;
-  const meta = [
-    item.no ? `題號：${item.no}` : "",
-    item.scope ? `範圍：${item.scope}` : "",
-    item.type ? `題型：${item.type}` : ""
-  ].filter(Boolean);
+function showLeaderboardBox(){
+  const box = $("leaderboardBox");
+  if(box) box.classList.remove("hidden");
+}
 
-  const yourAnswer = `${LETTERS[a.selected] || "-"}．${item.opts[a.selected] || ""}`;
-  const correctAnswer = a.correct >= 0
-    ? `${LETTERS[a.correct]}．${item.opts[a.correct]}`
-    : item.ans;
+async function loadLeaderboard(){
+  if(!db){
+    alert("Firebase 尚未設定，無法讀取排行榜。");
+    return;
+  }
 
-  return `
-    <div class="reviewItem">
-      <div class="reviewHead">
-        <span class="pill badPill">錯題 ${idx+1}</span>
-        ${meta.map(m=>`<span class="pill">${escapeHtml(m)}</span>`).join("")}
-      </div>
+  showLeaderboardBox();
+  const table = $("leaderboardTable");
+  if(table) table.innerHTML = "排行榜讀取中...";
 
-      <div class="reviewQuestion">${escapeHtml(item.q)}</div>
+  try{
+    const snap = await db.collection("leaderboard")
+      .orderBy("rankScore", "desc")
+      .limit(30)
+      .get();
 
-      <div class="muted">
-        你的答案：<b class="bad">${escapeHtml(yourAnswer)}</b><br>
-        正確答案：<b class="ok">${escapeHtml(correctAnswer)}</b>
-      </div>
+    const rows = [];
+    snap.forEach(doc => rows.push(doc.data() || {}));
 
-      <div class="reviewOptions">
-        ${item.opts.map((opt,i)=>{
-          const cls = i === a.correct ? "correct" : (i === a.selected ? "wrong" : "");
-          return `<div class="reviewOption ${cls}">${LETTERS[i]}．${escapeHtml(opt)}</div>`;
-        }).join("")}
-      </div>
+    rows.forEach(r => {
+      r._rankScore = rankScoreFromRow(r);
+      r._attemptScore = Number(r.attemptScore || attemptScoreFromAttempts(Number(r.attemptCount || 0)));
+    });
 
-      <div class="explain">
-        <b>解析：</b>${escapeHtml(item.exp || "這題目前沒有解析，建議回教材查這個觀念。")}
-      </div>
-    </div>
-  `;
+    rows.sort((a,b) => {
+      const rankDiff = Number(b._rankScore || 0) - Number(a._rankScore || 0);
+      if(rankDiff !== 0) return rankDiff;
+      const avgDiff = Number(b.avgScore || 0) - Number(a.avgScore || 0);
+      if(avgDiff !== 0) return avgDiff;
+      const bestDiff = Number(b.bestScore || 0) - Number(a.bestScore || 0);
+      if(bestDiff !== 0) return bestDiff;
+      return Number(b.attemptCount || 0) - Number(a.attemptCount || 0);
+    });
+
+    if(!rows.length){
+      if(table) table.innerHTML = "<p class='muted'>目前還沒有排行榜資料。會員登入後完成測驗，就會開始累積。</p>";
+      return;
+    }
+
+    const html = `
+      <table class="leaderboardTable">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>使用者</th>
+            <th>綜合戰力</th>
+            <th>刷題次數</th>
+            <th>平均分</th>
+            <th>最高分</th>
+            <th>刷題投入</th>
+            <th>最近表現</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r,i)=>{
+            const rankClass = i === 0 ? "top1" : (i === 1 ? "top2" : (i === 2 ? "top3" : ""));
+            const isMe = currentUser && r.uid === currentUser.uid;
+            const name = escapeHtml(r.displayName || "匿名會員");
+            return `<tr>
+              <td><span class="rankBadge ${rankClass}">${i+1}</span></td>
+              <td>
+                <div class="leaderName">${isMe ? "⭐ " : ""}${name}</div>
+                <div class="leaderMeta">${isMe ? "這是你目前名稱的紀錄" : "會員名稱紀錄"}</div>
+              </td>
+              <td><b>${Number(r._rankScore || r.rankScore || 0)}</b> 分</td>
+              <td><b>${Number(r.attemptCount || 0)}</b> 次</td>
+              <td>${Number(r.avgScore || 0)} 分</td>
+              <td>${Number(r.bestScore || 0)} 分</td>
+              <td>${Number(r._attemptScore || r.attemptScore || 0)} 分</td>
+              <td>${Number(r.lastScore || 0)} / ${Number(r.lastTotal || TOTAL_SCORE)} 分｜${Number(r.lastRate || 0)}%</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>
+      <p class="muted small leaderboardNote">註：綜合戰力分數採加權公式，刷題投入使用遞減曲線，避免只靠狂刷題衝排名；若要正式競賽防作弊，需改用 Cloud Functions 後端驗證成績。</p>
+    `;
+    if(table) table.innerHTML = html;
+  }catch(e){
+    console.error(e);
+    if(table) table.innerHTML = `<p class="bad">排行榜讀取失敗：${escapeHtml(firebaseErrorMessage(e))}</p>`;
+  }
+}
+
+
+async function saveWrongStatsIfLoggedIn(){
+  const payload = buildWrongStatsPayload();
+  if(!payload.length) return;
+
+  const box = $("weakPoint");
+  if(!currentUser || !db){
+    if(box) box.innerHTML += `<br><span class="muted small">目前是訪客模式，本次錯題只顯示在畫面中，不會寫入雲端紀錄。</span>`;
+    return;
+  }
+
+  try{
+    let saved = 0;
+    for(const item of payload){
+      const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats").doc(safeDocId(item.questionNo));
+      await db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        if(snap.exists){
+          tx.set(ref, {
+            questionNo: item.questionNo,
+            scope: item.scope,
+            type: item.type,
+            lastSelected: item.lastSelected,
+            correctAnswer: item.correctAnswer,
+            wrongCount: firebase.firestore.FieldValue.increment(1),
+            mastered: false,
+            lastWrongAt: now,
+            updatedAt: now
+          }, {merge:true});
+        }else{
+          tx.set(ref, {
+            questionNo: item.questionNo,
+            scope: item.scope,
+            type: item.type,
+            lastSelected: item.lastSelected,
+            correctAnswer: item.correctAnswer,
+            wrongCount: 1,
+            mastered: false,
+            firstWrongAt: now,
+            lastWrongAt: now,
+            updatedAt: now
+          });
+        }
+      });
+      saved++;
+    }
+    if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 筆錯題統計到 Firestore。</span>`;
+  }catch(e){
+    console.error(e);
+    if(box) box.innerHTML += `<br><span class="muted small">錯題同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
+  }
+}
+
+async function practiceHistoryWrong(){
+  if(!currentUser || !db){
+    alert("請先登入會員，才可以讀取你的歷史錯題。訪客模式不會紀錄歷史錯題。");
+    return;
+  }
+  if(!bank.length){
+    alert("題庫尚未讀取成功，請先重新讀取題庫。");
+    return;
+  }
+
+  try{
+    const snap = await db.collection("users").doc(currentUser.uid).collection("wrongStats").get();
+    const stats = [];
+    snap.forEach(doc => {
+      const data = doc.data() || {};
+      if(data.mastered !== true) stats.push(data);
+    });
+
+    if(!stats.length){
+      alert("目前沒有歷史錯題紀錄。先登入後完成一回測驗，答錯的題目才會累積在這裡。或你的錯題都已標記掌握。");
+      return;
+    }
+
+    stats.sort((a,b) => Number(b.wrongCount || 0) - Number(a.wrongCount || 0));
+    const itemMap = new Map(bank.map(item => [getQuestionKey(item), item]));
+    const wrongItems = [];
+    const missing = [];
+    stats.forEach(s => {
+      const key = String(s.questionNo || "").trim();
+      const item = itemMap.get(key);
+      if(item) wrongItems.push(item);
+      else missing.push(key);
+    });
+
+    if(!wrongItems.length){
+      alert("有歷史錯題紀錄，但目前題庫找不到對應題號。請確認題庫的題號沒有改過。\n找不到的題號：" + missing.slice(0,10).join("、"));
+      return;
+    }
+
+    if(missing.length){
+      alert(`有 ${missing.length} 題歷史錯題在目前題庫找不到，會先練找得到的 ${wrongItems.length} 題。`);
+    }
+    startQuiz(wrongItems);
+  }catch(e){
+    alert("讀取歷史錯題失敗：" + firebaseErrorMessage(e));
+  }
 }
 
 function escapeHtml(s){
@@ -698,23 +1437,30 @@ function escapeHtml(s){
 
 $("startBtn").onclick = startQuiz;
 $("reloadBtn").onclick = loadBank;
-$("scopeAllBtn").onclick = () => setAllScopes(true);
-$("scopeClearBtn").onclick = () => setAllScopes(false);
-$("countInput").addEventListener("change", updateFilteredCount);
 $("submitBtn").onclick = submitAnswer;
 $("nextBtn").onclick = nextQuestion;
-$("againBtn").onclick = () => {
-  $("finish").classList.add("hidden");
-  $("review").classList.add("hidden");
-  $("setup").classList.remove("hidden");
-};
-$("reviewBtn").onclick = () => reviewWrong(false);
-$("wrongOnlyBtn").onclick = startWrongQuiz;
+$("againBtn").onclick = () => { $("finish").classList.add("hidden"); $("review").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+$("reviewBtn").onclick = reviewWrong;
+$("practiceWrongBtn").onclick = practiceWrong;
+$("historyWrongBtn").onclick = practiceHistoryWrong;
+$("historyWrongBtnFinish").onclick = practiceHistoryWrong;
+$("leaderboardBtn").onclick = loadLeaderboard;
+$("leaderboardBtnFinish").onclick = loadLeaderboard;
+$("reloadLeaderboardBtn").onclick = loadLeaderboard;
+$("hideLeaderboardBtn").onclick = () => $("leaderboardBox").classList.add("hidden");
+$("loginBtn").onclick = loginMember;
+$("registerBtn").onclick = registerMember;
+$("googleLoginBtn").onclick = loginWithGoogle;
+$("logoutBtn").onclick = logoutMember;
+$("loginPassInput").addEventListener("keydown", e => { if(e.key === "Enter") loginMember(); });
 $("themeToggleBtn").onclick = toggleTheme;
+$("selectAllScopesBtn").onclick = () => setAllScopes(true);
+$("clearScopesBtn").onclick = () => setAllScopes(false);
+$("countInput").oninput = syncCountInputByScope;
 
 initTheme();
+initFirebase();
 loadBank();
 </script>
 </body>
 </html>
-

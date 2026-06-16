@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI應用規劃師｜中級模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</title>
+  <title>AI應用規劃師｜初級模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</title>
   <style>
     :root{
       --bg:#f6f7fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
@@ -161,7 +161,7 @@
 <div class="wrap">
   <div class="card">
     <div class="titleRow">
-      <h1>AI應用規劃師｜中級｜模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</h1>
+      <h1>改自己的網頁系統名稱</h1>
       <button class="ghost themeToggle" id="themeToggleBtn" type="button">🌙 夜間模式</button>
     </div>
     <div class="muted">
@@ -198,9 +198,11 @@
       <button class="secondary" id="logoutBtn" type="button" disabled>登出</button>
       <button class="ghost" id="historyWrongBtn" type="button">錯題內容複習</button>
       <button class="ghost" id="leaderboardBtn" type="button">查看排行榜</button>
+      <button class="warn" id="clearPracticeHistoryBtn" type="button">清除已練習紀錄</button>
+      <button class="warn" id="clearWrongStatsBtn" type="button">刪除錯題統計</button>
     </div>
     <div class="authHint muted small" style="margin-top:10px">
-      未登入就是訪客模式，可以練習但不會記錄雲端錯題。登入後 Firestore 只存錯題統計與成績統計；排行榜以「使用者帳號 + 顯示名稱」分開統計，換名稱不會覆蓋舊名稱紀錄。
+      未登入就是訪客模式，可以練習但不會記錄雲端錯題與練習歷史。登入後 Firestore 會保存錯題統計、成績統計與已練習題目；一般模擬考會自動排除已練習題目。排行榜以「使用者帳號 + 顯示名稱」分開統計，換名稱不會覆蓋舊名稱紀錄。
     </div>
   </div>
 
@@ -284,6 +286,8 @@
       <button class="secondary" id="practiceWrongBtn">只練本次錯題</button>
       <button class="ghost" id="historyWrongBtnFinish" type="button">錯題內容複習</button>
       <button class="ghost" id="leaderboardBtnFinish" type="button">查看排行榜</button>
+      <button class="warn" id="clearPracticeHistoryBtnFinish" type="button">清除已練習紀錄</button>
+      <button class="warn" id="clearWrongStatsBtnFinish" type="button">刪除錯題統計</button>
     </div>
   </div>
 
@@ -299,6 +303,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 // ===== 1) Firebase 設定：請到 Firebase Console → Project settings → Your apps → Web app 複製設定貼在這裡 =====
+
 const firebaseConfig = {
   apiKey: "AIzaSyC7it5zGkIRFT4OdCyXx0uPG02i_gfZSw4",
   authDomain: "ips-ai-application-middl-8d363.firebaseapp.com",
@@ -308,6 +313,7 @@ const firebaseConfig = {
   appId: "1:966651133791:web:fa03ac889cbedb335980ea",
   measurementId: "G-VYQX3WJ14D"
 }
+
 
 // 使用者輸入 userName 時，底層會轉成 userName@ipas-exam.local 給 Firebase Auth 使用。
 // 不用真的存在這個網域，也不會寄信。
@@ -376,6 +382,9 @@ function updateAuthButtons(){
   const loggedIn = !!currentUser;
   const configured = !!auth && !!db;
   ["loginBtn", "registerBtn", "googleLoginBtn"].forEach(id => { if($(id)) $(id).disabled = loggedIn || !configured; });
+  ["historyWrongBtn", "historyWrongBtnFinish", "clearPracticeHistoryBtn", "clearPracticeHistoryBtnFinish", "clearWrongStatsBtn", "clearWrongStatsBtnFinish"].forEach(id => {
+    if($(id)) $(id).disabled = !loggedIn || !configured;
+  });
   if($("logoutBtn")) $("logoutBtn").disabled = !loggedIn || !configured;
 }
 
@@ -843,19 +852,46 @@ async function loadBank(){
   }
 }
 
-function startQuiz(sourceQuestions = null){
+async function startQuiz(sourceQuestions = null){
   if(!bank.length){ alert("題庫尚未讀取成功"); return; }
 
+  // sourceQuestions 有值時代表「只練本次錯題」或「歷史錯題複習」。
+  // 這類是刻意複習，所以不套用已練習題目排除規則。
   if(Array.isArray(sourceQuestions) && sourceQuestions.length){
     quiz = shuffle(sourceQuestions);
     mode = "instant";
   }else{
     mode = $("modeInput").value;
-    const pool = getSelectedQuestions();
+    let pool = getSelectedQuestions();
     if(!pool.length){
       alert("請至少勾選一個要練習的範圍");
       return;
     }
+
+    const originalPoolCount = pool.length;
+
+    // 登入會員的一般模擬考：自動排除 users/{uid}/practiceHistory 裡已練習過的題目。
+    if(currentUser && db){
+      try{
+        const practicedKeys = await getPracticeHistoryKeys();
+        pool = pool.filter(item => !practicedKeys.has(getQuestionKey(item)));
+        const skippedCount = originalPoolCount - pool.length;
+
+        if(skippedCount > 0 && $("loadMsg")){
+          $("loadMsg").textContent = `已依會員練習歷史排除 ${skippedCount} 題，本次可抽 ${pool.length} 題。`;
+        }
+
+        if(!pool.length){
+          alert("你勾選的範圍內，題目都已經練習過了。\n可以按「清除已練習紀錄」讓題目重新出現，或改勾選其他範圍。");
+          return;
+        }
+      }catch(e){
+        console.error("讀取已練習紀錄失敗", e);
+        alert("讀取已練習紀錄失敗：" + firebaseErrorMessage(e) + "\n為避免重複出題，請稍後再試或先清除已練習紀錄。");
+        return;
+      }
+    }
+
     const count = Math.min(Number($("countInput").value || 20), pool.length);
     quiz = shuffle(pool).slice(0,count);
   }
@@ -961,6 +997,7 @@ function finishQuiz(){
   renderWeakPoint();
   $("practiceWrongBtn").disabled = wrongCount === 0;
   reviewWrong();
+  savePracticeHistoryIfLoggedIn();
   saveWrongStatsIfLoggedIn();
   saveExamResultIfLoggedIn({score, total, correctCount, wrongCount, rate, mode});
 }
@@ -1078,6 +1115,140 @@ function buildWrongStatsPayload(){
     lastSelected: selectedAnswerText(a),
     correctAnswer: correctAnswerText(a)
   })).filter(x => x.questionNo);
+}
+
+function buildPracticeHistoryPayload(){
+  return quiz.map(item => ({
+    questionNo: getQuestionKey(item),
+    originalNo: questionNo(item),
+    scope: item.scope || "未分類",
+    type: item.type || "",
+    questionText: String(item.q || "").slice(0, 500)
+  })).filter(x => x.questionNo);
+}
+
+async function getPracticeHistoryKeys(){
+  if(!currentUser || !db) return new Set();
+
+  const snap = await db.collection("users")
+    .doc(currentUser.uid)
+    .collection("practiceHistory")
+    .get();
+
+  const keys = new Set();
+  snap.forEach(doc => {
+    const data = doc.data() || {};
+    const key = String(data.questionNo || "").trim();
+    if(key) keys.add(key);
+  });
+  return keys;
+}
+
+async function savePracticeHistoryIfLoggedIn(){
+  const payload = buildPracticeHistoryPayload();
+  if(!payload.length) return;
+
+  const box = $("weakPoint");
+  if(!currentUser || !db){
+    if(box) box.innerHTML += `<br><span class="muted small">目前是訪客模式，本次已練習題目不會寫入雲端紀錄。</span>`;
+    return;
+  }
+
+  try{
+    let saved = 0;
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    // Firestore batch 上限 500 筆；這裡用 450 保留安全距離。
+    for(let i = 0; i < payload.length; i += 450){
+      const chunk = payload.slice(i, i + 450);
+      const batch = db.batch();
+
+      chunk.forEach(item => {
+        const ref = db.collection("users")
+          .doc(currentUser.uid)
+          .collection("practiceHistory")
+          .doc(safeDocId(item.questionNo));
+
+        batch.set(ref, {
+          questionNo: item.questionNo,
+          originalNo: item.originalNo,
+          scope: item.scope,
+          type: item.type,
+          questionText: item.questionText,
+          practicedCount: firebase.firestore.FieldValue.increment(1),
+          lastPracticedAt: now,
+          updatedAt: now
+        }, {merge:true});
+      });
+
+      await batch.commit();
+      saved += chunk.length;
+    }
+
+    if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 題到已練習紀錄；下次一般模擬考會自動排除這些題目。</span>`;
+  }catch(e){
+    console.error(e);
+    if(box) box.innerHTML += `<br><span class="muted small">已練習紀錄同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
+  }
+}
+
+async function deleteCollectionDocs(collectionRef, batchSize = 450){
+  let deleted = 0;
+
+  while(true){
+    const snap = await collectionRef.limit(batchSize).get();
+    if(snap.empty) break;
+
+    const batch = db.batch();
+    snap.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+
+    deleted += snap.size;
+    if(snap.size < batchSize) break;
+  }
+
+  return deleted;
+}
+
+async function clearPracticeHistory(){
+  if(!currentUser || !db){
+    alert("請先登入會員，才可以清除已練習紀錄。");
+    return;
+  }
+
+  const ok = confirm("確定要清除已練習題目紀錄嗎？\n\n這只會刪除 users/{uid}/practiceHistory。\n不會刪除排行榜、成績統計、錯題統計。\n清除後，已練習過的題目會重新出現在一般模擬考。");
+  if(!ok) return;
+
+  try{
+    const ref = db.collection("users").doc(currentUser.uid).collection("practiceHistory");
+    const deleted = await deleteCollectionDocs(ref);
+    alert(`已清除 ${deleted} 筆已練習題目紀錄。題目會重新出現在一般模擬考。`);
+    if($("loadMsg") && bank.length){
+      $("loadMsg").textContent = `已清除已練習紀錄。題庫共 ${bank.length} 題，可重新抽題。`;
+    }
+  }catch(e){
+    console.error(e);
+    alert("清除已練習紀錄失敗：" + firebaseErrorMessage(e));
+  }
+}
+
+async function clearWrongStats(){
+  if(!currentUser || !db){
+    alert("請先登入會員，才可以刪除錯題統計。");
+    return;
+  }
+
+  const ok = confirm("確定要刪除錯題統計嗎？\n\n這只會刪除 users/{uid}/wrongStats。\n不會刪除排行榜、成績統計、已練習題目紀錄。\n刪除後，「錯題內容複習」會重新開始累積。");
+  if(!ok) return;
+
+  try{
+    const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats");
+    const deleted = await deleteCollectionDocs(ref);
+    alert(`已刪除 ${deleted} 筆錯題統計。`);
+  }catch(e){
+    console.error(e);
+    alert("刪除錯題統計失敗：" + firebaseErrorMessage(e));
+  }
 }
 
 
@@ -1446,6 +1617,10 @@ $("historyWrongBtn").onclick = practiceHistoryWrong;
 $("historyWrongBtnFinish").onclick = practiceHistoryWrong;
 $("leaderboardBtn").onclick = loadLeaderboard;
 $("leaderboardBtnFinish").onclick = loadLeaderboard;
+$("clearPracticeHistoryBtn").onclick = clearPracticeHistory;
+$("clearPracticeHistoryBtnFinish").onclick = clearPracticeHistory;
+$("clearWrongStatsBtn").onclick = clearWrongStats;
+$("clearWrongStatsBtnFinish").onclick = clearWrongStats;
 $("reloadLeaderboardBtn").onclick = loadLeaderboard;
 $("hideLeaderboardBtn").onclick = () => $("leaderboardBox").classList.add("hidden");
 $("loginBtn").onclick = loginMember;

@@ -80,6 +80,17 @@
     .configBox{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
     code{background:#f3f4f6;border:1px solid var(--line);border-radius:6px;padding:1px 5px}
 
+
+    .topFollowBar{display:flex;justify-content:flex-end;margin-bottom:10px}
+    .fbFollowLink{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#1e40af;text-decoration:none;font-size:13px;font-weight:900;border:1px solid #bfdbfe}
+    .fbFollowLink:hover{background:#dbeafe;border-color:#93c5fd}
+    .memberStatsBox{margin:0 0 14px;padding:12px;border-radius:16px;background:#f8fbff;border:1px solid #bfdbfe}
+    .memberStatsTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;font-weight:900;color:#1e40af}
+    .memberStatGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .memberStat{padding:11px;border-radius:14px;background:#fff;border:1px solid var(--line);text-align:center}
+    .memberStat b{display:block;font-size:22px;margin-bottom:2px;color:var(--main)}
+    .memberStat span{font-size:13px;color:var(--muted);font-weight:700}
+    .memberStatsHint{margin-top:8px;line-height:1.6}
     .leaderboardControls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
     .leaderboardNote{margin-top:8px}
     .leaderboardTableWrap{overflow-x:auto;margin-top:12px}
@@ -132,6 +143,12 @@
     html[data-theme="dark"] .configBox{background:#451a03;border-color:#92400e;color:#fed7aa}
     html[data-theme="dark"] code{background:#0b1220;border-color:var(--line)}
 
+
+    html[data-theme="dark"] .fbFollowLink{background:#1e3a8a;color:#dbeafe;border-color:#2563eb}
+    html[data-theme="dark"] .fbFollowLink:hover{background:#172554;border-color:#60a5fa}
+    html[data-theme="dark"] .memberStatsBox{background:#0b1220;border-color:#2563eb}
+    html[data-theme="dark"] .memberStatsTitle{color:#dbeafe}
+    html[data-theme="dark"] .memberStat{background:#111827;border-color:var(--line)}
     html[data-theme="dark"] .leaderboardTable th{background:#0b1220;color:var(--muted)}
     html[data-theme="dark"] .leaderboardTable th,
     html[data-theme="dark"] .leaderboardTable td{border-bottom-color:var(--line)}
@@ -154,19 +171,24 @@
       .scopeGrid{grid-template-columns:1fr}
       .scopeItem input{width:auto}
       .authGrid{grid-template-columns:1fr}
+      .memberStatGrid{grid-template-columns:1fr}
+      .topFollowBar{justify-content:flex-start}
     }
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
+    <div class="topFollowBar">
+      <a class="fbFollowLink" href="https://www.facebook.com/profile.php?id=61574384431225" target="_blank" rel="noopener noreferrer">👍 追蹤 FB｜雲橫介工程師</a>
+    </div>
     <div class="titleRow">
       <h1>AI應用規劃師｜中級｜模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</h1>
       <button class="ghost themeToggle" id="themeToggleBtn" type="button">🌙 夜間模式</button>
     </div>
     <div class="muted">
       題庫來源：Google Sheet。錯題紀錄來源：Firebase Authentication + Cloud Firestore。<br>
-      喜歡的話，希望可以到FB搜尋 雲橫介工程師 按讚分享追蹤起來 謝謝大家。</b>。
+      喜歡的話，也可以按上方連結追蹤 FB、按讚分享，謝謝大家。
     </div>
   </div>
 
@@ -208,9 +230,9 @@
 
 
   <div id="leaderboardBox" class="card hidden">
-    <h2>綜合戰力排行榜</h2>
+    <h2>累積積分排行榜</h2>
     <p class="muted small leaderboardNote">
-      排行榜來源：Firebase Firestore 的 <code>leaderboard</code> 集合。主排序為「刷題次數最多」；同一會員若更換顯示名稱，會以不同名稱各自累積。
+      排行榜來源：Firebase Firestore 的 <code>leaderboard</code> 集合。主排序改為「累積積分」；每次測驗至少 10 題才會加分，並依答對比例、題數與本次分數加權計算。
     </p>
     <div class="leaderboardControls">
       <button class="ghost" id="reloadLeaderboardBtn" type="button">重新整理排行榜</button>
@@ -221,6 +243,18 @@
 
   <div id="setup" class="card">
     <h2>考前設定</h2>
+    <div id="memberStudyStatsBox" class="memberStatsBox hidden">
+      <div class="memberStatsTitle">
+        <span>會員學習狀態</span>
+        <button class="ghost" id="refreshMemberStatsBtn" type="button">重新整理狀態</button>
+      </div>
+      <div class="memberStatGrid">
+        <div class="memberStat"><b id="practicedCountText">0</b><span>已練習題目</span></div>
+        <div class="memberStat"><b id="activeWrongCountText">0</b><span>目前錯題</span></div>
+        <div class="memberStat"><b id="masteredWrongCountText">0</b><span>已掌握錯題</span></div>
+      </div>
+      <div id="memberStatsHint" class="memberStatsHint muted small">登入後會自動讀取你的練習狀態。</div>
+    </div>
     <div class="row">
       <label>題數 <input id="countInput" type="number" min="1" value="20"></label>
       <label>模式
@@ -314,7 +348,6 @@ const firebaseConfig = {
   measurementId: "G-VYQX3WJ14D"
 }
 
-
 // 使用者輸入 userName 時，底層會轉成 userName@ipas-exam.local 給 Firebase Auth 使用。
 // 不用真的存在這個網域，也不會寄信。
 const AUTH_EMAIL_DOMAIN = "ipas-exam.local";
@@ -388,11 +421,66 @@ function updateAuthButtons(){
   if($("logoutBtn")) $("logoutBtn").disabled = !loggedIn || !configured;
 }
 
+
+function setMemberStatsLoading(message="正在讀取會員學習狀態..."){
+  const box = $("memberStudyStatsBox");
+  if(!box) return;
+  box.classList.remove("hidden");
+  if($("practicedCountText")) $("practicedCountText").textContent = "...";
+  if($("activeWrongCountText")) $("activeWrongCountText").textContent = "...";
+  if($("masteredWrongCountText")) $("masteredWrongCountText").textContent = "...";
+  if($("memberStatsHint")) $("memberStatsHint").textContent = message;
+}
+
+function hideMemberStudyStats(){
+  const box = $("memberStudyStatsBox");
+  if(box) box.classList.add("hidden");
+}
+
+async function refreshMemberStudyStats(){
+  const box = $("memberStudyStatsBox");
+  if(!box) return;
+
+  if(!currentUser || !db){
+    hideMemberStudyStats();
+    return;
+  }
+
+  setMemberStatsLoading();
+
+  try{
+    const userDoc = db.collection("users").doc(currentUser.uid);
+    const historySnap = await userDoc.collection("practiceHistory").get();
+    const wrongSnap = await userDoc.collection("wrongStats").get();
+
+    let activeWrongCount = 0;
+    let masteredWrongCount = 0;
+    wrongSnap.forEach(doc => {
+      const data = doc.data() || {};
+      if(data.mastered === true) masteredWrongCount++;
+      else activeWrongCount++;
+    });
+
+    if($("practicedCountText")) $("practicedCountText").textContent = historySnap.size;
+    if($("activeWrongCountText")) $("activeWrongCountText").textContent = activeWrongCount;
+    if($("masteredWrongCountText")) $("masteredWrongCountText").textContent = masteredWrongCount;
+
+    const displayName = escapeHtml(getDisplayNameForLeaderboard());
+    if($("memberStatsHint")){
+      $("memberStatsHint").innerHTML = `已登入：<b>${displayName}</b>。一般模擬考會自動排除已練習題目；錯題內容複習會抓目前未掌握錯題。`;
+    }
+  }catch(e){
+    console.error("讀取會員學習狀態失敗", e);
+    if($("memberStatsHint")) $("memberStatsHint").innerHTML = `會員學習狀態讀取失敗：${escapeHtml(firebaseErrorMessage(e))}`;
+  }
+}
+
 function initFirebase(){
   if(!isFirebaseConfigured()){
     $("firebaseConfigNotice").classList.remove("hidden");
     setAuthStatus("目前：訪客模式。Firebase 尚未設定，可以練習，但不會寫入雲端錯題紀錄。", "guest");
     updateAuthButtons();
+    hideMemberStudyStats();
     return;
   }
 
@@ -416,12 +504,15 @@ function initFirebase(){
           currentProfile = profile || {};
           const name = profile.displayName || user.displayName || profile.userName || user.email || "會員";
           setAuthStatus(`目前：${name} 已登入。考完後錯題會寫入 Firestore。`, "loginOk");
+          await refreshMemberStudyStats();
         }catch(e){
           console.error("Firestore profile 建立/讀取失敗", e);
           setAuthStatus(`目前：${fallbackName} 已登入，但 Firestore 錯題紀錄權限異常：${firebaseErrorMessage(e)}`, "error");
+          await refreshMemberStudyStats();
         }
       }else{
         setAuthStatus("目前：訪客模式。可以練習，但不會寫入雲端錯題紀錄。", "guest");
+        hideMemberStudyStats();
       }
     });
   }catch(e){
@@ -845,6 +936,7 @@ async function loadBank(){
 
     renderScopeFilter();
     $("loadMsg").textContent = `題庫讀取成功：共 ${bank.length} 題，已預設全選 ${scopeMeta.length} 個範圍。`;
+    refreshMemberStudyStats();
   }catch(e){
     $("loadMsg").innerHTML =
       `讀取失敗：${escapeHtml(e.message)}<br>` +
@@ -1186,6 +1278,7 @@ async function savePracticeHistoryIfLoggedIn(){
     }
 
     if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 題到已練習紀錄；下次一般模擬考會自動排除這些題目。</span>`;
+    refreshMemberStudyStats();
   }catch(e){
     console.error(e);
     if(box) box.innerHTML += `<br><span class="muted small">已練習紀錄同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
@@ -1223,6 +1316,7 @@ async function clearPracticeHistory(){
     const ref = db.collection("users").doc(currentUser.uid).collection("practiceHistory");
     const deleted = await deleteCollectionDocs(ref);
     alert(`已清除 ${deleted} 筆已練習題目紀錄。題目會重新出現在一般模擬考。`);
+    refreshMemberStudyStats();
     if($("loadMsg") && bank.length){
       $("loadMsg").textContent = `已清除已練習紀錄。題庫共 ${bank.length} 題，可重新抽題。`;
     }
@@ -1245,6 +1339,7 @@ async function clearWrongStats(){
     const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats");
     const deleted = await deleteCollectionDocs(ref);
     alert(`已刪除 ${deleted} 筆錯題統計。`);
+    refreshMemberStudyStats();
   }catch(e){
     console.error(e);
     alert("刪除錯題統計失敗：" + firebaseErrorMessage(e));
@@ -1284,38 +1379,44 @@ function safeLeaderboardDocId(uid, nameKey){
 }
 
 
-function attemptScoreFromAttempts(attemptCount){
-  // 刷題投入分：使用 log 曲線，避免單純狂刷題就壓過真正的分數表現。
-  // 1 次有基本分，30 次左右接近滿分，之後邊際效益遞減。
-  const count = Math.max(0, Number(attemptCount || 0));
-  const capped = Math.min(count, 30);
-  if(capped <= 0) return 0;
-  return Math.round((Math.log1p(capped) / Math.log1p(30)) * 1000) / 10;
+function calculateEarnedRankPoints({score=0, total=0, rate=0} = {}){
+  // 累積積分規則：本次測驗題數 >= 10 題才加分。
+  // 公式：本次新增積分 = 本次分數 * 45% + 答對率 * 35% + 題數加成 * 20%。
+  // 題數加成最多採 100 題計算，所以一次 100 題、滿分、100% 正確率時最多 +100 分。
+  const safeScore = Math.max(0, Number(score || 0));
+  const safeTotal = Math.max(0, Number(total || 0));
+  const safeRate = Math.max(0, Number(rate || 0));
+
+  if(safeTotal < 10){
+    return {
+      eligible:false,
+      points:0,
+      scorePart:0,
+      ratePart:0,
+      questionPart:0,
+      reason:"本次未滿 10 題，不增加排行榜積分。"
+    };
+  }
+
+  const scorePart = safeScore * 0.45;
+  const ratePart = safeRate * 0.35;
+  const questionPart = Math.min(safeTotal, 100) * 0.20;
+  const points = Math.round((scorePart + ratePart + questionPart) * 10) / 10;
+
+  return {
+    eligible:true,
+    points,
+    scorePart:Math.round(scorePart * 10) / 10,
+    ratePart:Math.round(ratePart * 10) / 10,
+    questionPart:Math.round(questionPart * 10) / 10,
+    reason:"本次符合 10 題以上門檻，已列入累積積分。"
+  };
 }
 
-function calculateRankScore({avgScore=0, bestScore=0, attemptScore=0, lastRate=0} = {}){
-  // 綜合戰力分數，滿分約 100。
-  // 平均分 45%：代表穩定度
-  // 最高分 25%：代表上限
-  // 刷題投入 20%：代表練習量，但用 log 限制刷題灌水
-  // 最近表現 10%：代表近期狀態
-  const value =
-    Number(avgScore || 0) * 0.45 +
-    Number(bestScore || 0) * 0.25 +
-    Number(attemptScore || 0) * 0.20 +
-    Number(lastRate || 0) * 0.10;
-  return Math.round(value * 10) / 10;
-}
-
-function rankScoreFromRow(row){
-  const attemptCount = Number(row && row.attemptCount || 0);
-  const attemptScore = Number(row && row.attemptScore || attemptScoreFromAttempts(attemptCount));
-  return calculateRankScore({
-    avgScore: Number(row && row.avgScore || 0),
-    bestScore: Number(row && row.bestScore || 0),
-    attemptScore,
-    lastRate: Number(row && row.lastRate || 0)
-  });
+function totalPointsFromRow(row){
+  // 新版使用 totalPoints。舊資料若尚未有 totalPoints，暫以舊 rankScore 顯示，完成新測驗後會自動轉入累積積分欄位。
+  if(row && row.totalPoints !== undefined) return Number(row.totalPoints || 0);
+  return Number(row && row.rankScore || 0);
 }
 
 async function saveExamResultIfLoggedIn(result){
@@ -1332,6 +1433,7 @@ async function saveExamResultIfLoggedIn(result){
   const numericCorrect = Number(result.correctCount || 0);
   const numericWrong = Number(result.wrongCount || 0);
   const numericRate = Number(result.rate || 0);
+  const pointInfo = calculateEarnedRankPoints({score:numericScore, total:numericTotal, rate:numericRate});
 
   // 重要：排行榜不再只用 uid 當文件 ID。
   // 舊版：leaderboard/{uid} → 同一個帳號換名稱會互相覆蓋。
@@ -1341,22 +1443,22 @@ async function saveExamResultIfLoggedIn(result){
   const latestPrivateRef = db.collection("users").doc(currentUser.uid).collection("examStats").doc("main");
 
   try{
+    let finalTotalPoints = 0;
+
     await db.runTransaction(async tx => {
       const publicSnap = await tx.get(publicRef);
       const old = publicSnap.exists ? (publicSnap.data() || {}) : {};
       const oldAttempts = Number(old.attemptCount || 0);
       const oldTotalScore = Number(old.totalScore || 0);
+      const oldEligibleAttempts = Number(old.eligibleAttemptCount || 0);
+      const oldTotalPoints = totalPointsFromRow(old);
+
       const newAttempts = oldAttempts + 1;
+      const newEligibleAttempts = oldEligibleAttempts + (pointInfo.eligible ? 1 : 0);
       const newTotalScore = oldTotalScore + numericScore;
       const bestScore = Math.max(Number(old.bestScore || 0), numericScore);
       const avgScore = Math.round((newTotalScore / newAttempts) * 10) / 10;
-      const attemptScore = attemptScoreFromAttempts(newAttempts);
-      const rankScore = calculateRankScore({
-        avgScore,
-        bestScore,
-        attemptScore,
-        lastRate: numericRate
-      });
+      finalTotalPoints = Math.round((oldTotalPoints + pointInfo.points) * 10) / 10;
 
       const payload = {
         uid: currentUser.uid,
@@ -1366,12 +1468,19 @@ async function saveExamResultIfLoggedIn(result){
         displayNameKey: nameKey,
         providerId: currentUser.providerData && currentUser.providerData[0] ? currentUser.providerData[0].providerId : "",
         attemptCount: newAttempts,
+        eligibleAttemptCount: newEligibleAttempts,
         totalScore: newTotalScore,
         avgScore,
         bestScore,
-        attemptScore,
-        rankScore,
-        rankScoreVersion: "weighted_v1_avg45_best25_attempt20_recent10",
+        totalPoints: finalTotalPoints,
+        rankScore: finalTotalPoints,
+        rankScoreVersion: "cumulative_v2_min10_score45_rate35_questions20",
+        lastEarnedPoints: pointInfo.points,
+        lastPointEligible: pointInfo.eligible,
+        lastPointReason: pointInfo.reason,
+        lastPointScorePart: pointInfo.scorePart,
+        lastPointRatePart: pointInfo.ratePart,
+        lastPointQuestionPart: pointInfo.questionPart,
         lastScore: numericScore,
         lastTotal: numericTotal,
         lastCorrect: numericCorrect,
@@ -1397,15 +1506,23 @@ async function saveExamResultIfLoggedIn(result){
         latestCorrect: numericCorrect,
         latestWrong: numericWrong,
         latestRate: numericRate,
-        latestRankScore: rankScore,
-        latestAttemptScore: attemptScore,
+        latestEarnedPoints: pointInfo.points,
+        latestTotalPoints: finalTotalPoints,
+        latestPointEligible: pointInfo.eligible,
+        latestPointReason: pointInfo.reason,
         latestMode: result.mode || "",
         lastExamAt: now,
         updatedAt: now
       }, {merge:true});
     });
 
-    if(box) box.innerHTML += `<br><span class="muted small">已同步本次成績到排行榜統計：${escapeHtml(displayName)}。</span>`;
+    if(box){
+      if(pointInfo.eligible){
+        box.innerHTML += `<br><span class="muted small">已同步排行榜：${escapeHtml(displayName)} 本次 +${pointInfo.points} 分，累積 ${finalTotalPoints} 分。</span>`;
+      }else{
+        box.innerHTML += `<br><span class="muted small">已同步成績，但本次只有 ${numericTotal} 題，未滿 10 題，所以排行榜積分不增加。</span>`;
+      }
+    }
   }catch(e){
     console.error(e);
     if(box) box.innerHTML += `<br><span class="muted small">成績排行榜同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
@@ -1429,21 +1546,22 @@ async function loadLeaderboard(){
 
   try{
     const snap = await db.collection("leaderboard")
-      .orderBy("rankScore", "desc")
-      .limit(30)
+      .limit(100)
       .get();
 
     const rows = [];
     snap.forEach(doc => rows.push(doc.data() || {}));
 
     rows.forEach(r => {
-      r._rankScore = rankScoreFromRow(r);
-      r._attemptScore = Number(r.attemptScore || attemptScoreFromAttempts(Number(r.attemptCount || 0)));
+      r._totalPoints = totalPointsFromRow(r);
+      r._lastEarnedPoints = Number(r.lastEarnedPoints || 0);
     });
 
     rows.sort((a,b) => {
-      const rankDiff = Number(b._rankScore || 0) - Number(a._rankScore || 0);
-      if(rankDiff !== 0) return rankDiff;
+      const pointDiff = Number(b._totalPoints || 0) - Number(a._totalPoints || 0);
+      if(pointDiff !== 0) return pointDiff;
+      const eligibleDiff = Number(b.eligibleAttemptCount || 0) - Number(a.eligibleAttemptCount || 0);
+      if(eligibleDiff !== 0) return eligibleDiff;
       const avgDiff = Number(b.avgScore || 0) - Number(a.avgScore || 0);
       if(avgDiff !== 0) return avgDiff;
       const bestDiff = Number(b.bestScore || 0) - Number(a.bestScore || 0);
@@ -1451,8 +1569,10 @@ async function loadLeaderboard(){
       return Number(b.attemptCount || 0) - Number(a.attemptCount || 0);
     });
 
-    if(!rows.length){
-      if(table) table.innerHTML = "<p class='muted'>目前還沒有排行榜資料。會員登入後完成測驗，就會開始累積。</p>";
+    const topRows = rows.slice(0, 30);
+
+    if(!topRows.length){
+      if(table) table.innerHTML = "<p class='muted'>目前還沒有排行榜資料。會員登入後完成 10 題以上測驗，就會開始累積積分。</p>";
       return;
     }
 
@@ -1462,36 +1582,43 @@ async function loadLeaderboard(){
           <tr>
             <th>排名</th>
             <th>使用者</th>
-            <th>綜合戰力</th>
-            <th>刷題次數</th>
+            <th>累積積分</th>
+            <th>本次新增</th>
+            <th>有效測驗</th>
+            <th>測驗次數</th>
             <th>平均分</th>
             <th>最高分</th>
-            <th>刷題投入</th>
             <th>最近表現</th>
           </tr>
         </thead>
         <tbody>
-          ${rows.map((r,i)=>{
+          ${topRows.map((r,i)=>{
             const rankClass = i === 0 ? "top1" : (i === 1 ? "top2" : (i === 2 ? "top3" : ""));
             const isMe = currentUser && r.uid === currentUser.uid;
             const name = escapeHtml(r.displayName || "匿名會員");
+            const eligibleText = Number(r.eligibleAttemptCount || 0);
+            const totalAttemptText = Number(r.attemptCount || 0);
+            const lastPointText = r.lastPointEligible === false
+              ? "未滿 10 題"
+              : `+${Number(r._lastEarnedPoints || 0)} 分`;
             return `<tr>
               <td><span class="rankBadge ${rankClass}">${i+1}</span></td>
               <td>
                 <div class="leaderName">${isMe ? "⭐ " : ""}${name}</div>
                 <div class="leaderMeta">${isMe ? "這是你目前名稱的紀錄" : "會員名稱紀錄"}</div>
               </td>
-              <td><b>${Number(r._rankScore || r.rankScore || 0)}</b> 分</td>
-              <td><b>${Number(r.attemptCount || 0)}</b> 次</td>
+              <td><b>${Number(r._totalPoints || 0)}</b> 分</td>
+              <td>${lastPointText}</td>
+              <td><b>${eligibleText}</b> 回</td>
+              <td>${totalAttemptText} 回</td>
               <td>${Number(r.avgScore || 0)} 分</td>
               <td>${Number(r.bestScore || 0)} 分</td>
-              <td>${Number(r._attemptScore || r.attemptScore || 0)} 分</td>
               <td>${Number(r.lastScore || 0)} / ${Number(r.lastTotal || TOTAL_SCORE)} 分｜${Number(r.lastRate || 0)}%</td>
             </tr>`;
           }).join("")}
         </tbody>
       </table>
-      <p class="muted small leaderboardNote">註：綜合戰力分數採加權公式，刷題投入使用遞減曲線，避免只靠狂刷題衝排名；若要正式競賽防作弊，需改用 Cloud Functions 後端驗證成績。</p>
+      <p class="muted small leaderboardNote">註：本次新增積分只計入 10 題以上測驗，公式為「分數 × 45% + 答對率 × 35% + 題數加成 × 20%」。題數加成最多以 100 題計算；若要正式競賽防作弊，需改用 Cloud Functions 後端驗證成績。</p>
     `;
     if(table) table.innerHTML = html;
   }catch(e){
@@ -1548,6 +1675,7 @@ async function saveWrongStatsIfLoggedIn(){
       saved++;
     }
     if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 筆錯題統計到 Firestore。</span>`;
+    refreshMemberStudyStats();
   }catch(e){
     console.error(e);
     if(box) box.innerHTML += `<br><span class="muted small">錯題同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
@@ -1623,6 +1751,7 @@ $("clearWrongStatsBtn").onclick = clearWrongStats;
 $("clearWrongStatsBtnFinish").onclick = clearWrongStats;
 $("reloadLeaderboardBtn").onclick = loadLeaderboard;
 $("hideLeaderboardBtn").onclick = () => $("leaderboardBox").classList.add("hidden");
+$("refreshMemberStatsBtn").onclick = refreshMemberStudyStats;
 $("loginBtn").onclick = loginMember;
 $("registerBtn").onclick = registerMember;
 $("googleLoginBtn").onclick = loginWithGoogle;

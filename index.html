@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI應用規劃師｜中級模擬考練習｜ Firebase 版 _ FB 雲橫介工程師 分享</title>
+  <title>AI應用規劃師｜中級模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</title>
   <style>
     :root{
       --bg:#f6f7fb; --card:#ffffff; --text:#1f2937; --muted:#6b7280;
@@ -104,6 +104,14 @@
     .rankBadge.top3{background:#ffedd5;color:#9a3412}
     .leaderName{font-weight:900}
     .leaderMeta{font-size:12px;color:var(--muted);margin-top:2px}
+    .myRankBox{margin-top:12px;padding:14px;border-radius:16px;background:#fff7ed;border:1px solid #fed7aa}
+    .myRankTitle{font-size:14px;font-weight:900;color:#9a3412;margin-bottom:8px}
+    .myRankLine{display:flex;gap:10px;align-items:center;flex-wrap:wrap;line-height:1.7}
+    .myRankName{font-weight:900}
+    .myRankStats{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .myRankStat{display:inline-flex;gap:4px;align-items:center;padding:5px 9px;border-radius:999px;background:#ffffff;border:1px solid var(--line);font-size:13px;font-weight:800}
+    .top30Title{margin:16px 0 8px;font-weight:900;color:var(--text)}
+    tr.currentUserRow{background:#fff7ed}
 
     html[data-theme="dark"]{
       --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af;
@@ -156,6 +164,10 @@
     html[data-theme="dark"] .rankBadge.top1{background:#78350f;color:#fde68a}
     html[data-theme="dark"] .rankBadge.top2{background:#374151;color:#e5e7eb}
     html[data-theme="dark"] .rankBadge.top3{background:#7c2d12;color:#fed7aa}
+    html[data-theme="dark"] .myRankBox{background:#451a03;border-color:#92400e}
+    html[data-theme="dark"] .myRankTitle{color:#fed7aa}
+    html[data-theme="dark"] .myRankStat{background:#111827;border-color:var(--line)}
+    html[data-theme="dark"] tr.currentUserRow{background:#1e293b}
 
     @media(max-width:650px){
       .wrap{padding:12px}
@@ -183,7 +195,7 @@
       <a class="fbFollowLink" href="https://www.facebook.com/profile.php?id=61574384431225" target="_blank" rel="noopener noreferrer">👍 追蹤 FB｜雲橫介工程師</a>
     </div>
     <div class="titleRow">
-      <h1>AI應用規劃師｜中級｜模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</h1>
+      <h1>AI應用規劃師｜中級模擬考練習 Firebase 版 _ FB 雲橫介工程師 分享</h1>
       <button class="ghost themeToggle" id="themeToggleBtn" type="button">🌙 夜間模式</button>
     </div>
     <div class="muted">
@@ -224,7 +236,7 @@
       <button class="warn" id="clearWrongStatsBtn" type="button">刪除錯題統計</button>
     </div>
     <div class="authHint muted small" style="margin-top:10px">
-      未登入就是訪客模式，可以練習但不會記錄雲端錯題與練習歷史。登入後 Firestore 會保存錯題統計、成績統計與已練習題目；一般模擬考會自動排除已練習題目。排行榜以「使用者帳號 + 顯示名稱」分開統計，換名稱不會覆蓋舊名稱紀錄。
+      未登入就是訪客模式，可以練習但不會記錄雲端錯題與練習歷史。登入後，已練習題號會集中保存在 Firestore 的單一文件中，不再每題建立一份文件；一般模擬考會自動排除已練習題目。排行榜以「使用者帳號 + 顯示名稱」分開統計，換名稱不會覆蓋舊名稱紀錄。
     </div>
   </div>
 
@@ -346,7 +358,7 @@ const firebaseConfig = {
   messagingSenderId: "966651133791",
   appId: "1:966651133791:web:fa03ac889cbedb335980ea",
   measurementId: "G-VYQX3WJ14D"
-}
+};
 
 // 使用者輸入 userName 時，底層會轉成 userName@ipas-exam.local 給 Firebase Auth 使用。
 // 不用真的存在這個網域，也不會寄信。
@@ -372,6 +384,21 @@ let auth = null;
 let db = null;
 let currentUser = null;
 let currentProfile = null;
+
+// ===== Firebase 讀寫優化與狀態快取 =====
+// 已練習題目改存於單一文件：users/{uid}/practiceHistory/main
+// practicedKeys 僅保存題目唯一鍵，不再為每一題建立一份 Firestore 文件。
+// 一般模擬考開始前會重新讀取這一份文件，避免多裝置 / 多分頁快取不同步。
+let practiceHistoryKeyCache = null;
+let practiceHistoryRevisionCache = 0;
+let memberStatsCache = null;
+let memberStatsRefreshTimer = null;
+let currentQuizIsReviewMode = false;
+let authStateReady = false;
+let examSaveInProgress = false;
+const MEMBER_STATS_CACHE_TTL_MS = 3 * 60 * 1000;
+const PRACTICE_HISTORY_DOC_ID = "main";
+const PRACTICE_HISTORY_SCHEMA_VERSION = "single_document_v2";
 
 const $ = id => document.getElementById(id);
 
@@ -437,7 +464,52 @@ function hideMemberStudyStats(){
   if(box) box.classList.add("hidden");
 }
 
-async function refreshMemberStudyStats(){
+function renderMemberStudyStats(stats, hintText=""){
+  const box = $("memberStudyStatsBox");
+  if(!box) return;
+  box.classList.remove("hidden");
+
+  const practiced = Number(stats && stats.practicedCount || 0);
+  const activeWrong = Number(stats && stats.activeWrongCount || 0);
+  const masteredWrong = Number(stats && stats.masteredWrongCount || 0);
+
+  if($("practicedCountText")) $("practicedCountText").textContent = practiced;
+  if($("activeWrongCountText")) $("activeWrongCountText").textContent = activeWrong;
+  if($("masteredWrongCountText")) $("masteredWrongCountText").textContent = masteredWrong;
+
+  const displayName = escapeHtml(getDisplayNameForLeaderboard());
+  if($("memberStatsHint")){
+    $("memberStatsHint").innerHTML = hintText || `已登入：<b>${displayName}</b>。一般模擬考會自動排除已練習題目；錯題內容複習會抓目前未掌握錯題。`;
+  }
+}
+
+function invalidateMemberStatsCache(){
+  memberStatsCache = null;
+}
+
+function scheduleMemberStatsRefresh(delayMs=900){
+  if(memberStatsRefreshTimer) clearTimeout(memberStatsRefreshTimer);
+  memberStatsRefreshTimer = setTimeout(() => {
+    memberStatsRefreshTimer = null;
+    refreshMemberStudyStats(true);
+  }, delayMs);
+}
+
+async function getAggregateCount(queryRef){
+  // Firestore count() 聚合查詢：比把整個 collection get() 回前端便宜很多。
+  // 若瀏覽器 SDK / 環境不支援 count()，才退回舊做法。
+  if(queryRef && typeof queryRef.count === "function"){
+    const snap = await queryRef.count().get();
+    const data = snap.data ? snap.data() : {};
+    return Number(data.count || 0);
+  }
+
+  console.warn("目前 Firebase SDK 不支援 count()，退回一般 get()；讀取數會較高，建議升級 Firestore Web SDK。");
+  const snap = await queryRef.get();
+  return snap.size;
+}
+
+async function refreshMemberStudyStats(force=false){
   const box = $("memberStudyStatsBox");
   if(!box) return;
 
@@ -446,29 +518,51 @@ async function refreshMemberStudyStats(){
     return;
   }
 
+  if(!force && memberStatsCache && (Date.now() - memberStatsCache.cachedAt < MEMBER_STATS_CACHE_TTL_MS)){
+    renderMemberStudyStats(memberStatsCache);
+    return;
+  }
+
   setMemberStatsLoading();
 
   try{
     const userDoc = db.collection("users").doc(currentUser.uid);
-    const historySnap = await userDoc.collection("practiceHistory").get();
-    const wrongSnap = await userDoc.collection("wrongStats").get();
+    const statsRef = userDoc.collection("stats").doc("main");
 
-    let activeWrongCount = 0;
-    let masteredWrongCount = 0;
-    wrongSnap.forEach(doc => {
-      const data = doc.data() || {};
-      if(data.mastered === true) masteredWrongCount++;
-      else activeWrongCount++;
-    });
+    // 已練習題數以 practiceHistory/main 的 practicedKeys 陣列為準。
+    // 這樣不需要對 practiceHistory 子集合做 count()，也不會為每一題產生一份文件。
+    const practicedKeys = await getPracticeHistoryKeys(force);
+    const practicedCount = practicedKeys.size;
 
-    if($("practicedCountText")) $("practicedCountText").textContent = historySnap.size;
-    if($("activeWrongCountText")) $("activeWrongCountText").textContent = activeWrongCount;
-    if($("masteredWrongCountText")) $("masteredWrongCountText").textContent = masteredWrongCount;
+    const statsSnap = await statsRef.get();
+    let stats = statsSnap.exists ? (statsSnap.data() || {}) : null;
 
-    const displayName = escapeHtml(getDisplayNameForLeaderboard());
-    if($("memberStatsHint")){
-      $("memberStatsHint").innerHTML = `已登入：<b>${displayName}</b>。一般模擬考會自動排除已練習題目；錯題內容複習會抓目前未掌握錯題。`;
+    // 錯題仍採每題一份統計文件，因為需要保存 wrongCount、mastered 等個別狀態。
+    // 強制刷新、舊版資料或第一次登入時，才使用 count() 聚合校正錯題數。
+    if(force || !stats || stats.statsVersion !== "read_optimized_v2"){
+      const activeWrongCount = await getAggregateCount(userDoc.collection("wrongStats").where("mastered", "==", false));
+      const masteredWrongCount = await getAggregateCount(userDoc.collection("wrongStats").where("mastered", "==", true));
+
+      stats = {
+        activeWrongCount,
+        masteredWrongCount,
+        statsVersion:"read_optimized_v2",
+        rebuiltAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      await statsRef.set(stats, {merge:true});
+      stats = {activeWrongCount, masteredWrongCount, statsVersion:"read_optimized_v2"};
     }
+
+    memberStatsCache = {
+      practicedCount,
+      activeWrongCount: Number(stats.activeWrongCount || 0),
+      masteredWrongCount: Number(stats.masteredWrongCount || 0),
+      cachedAt: Date.now()
+    };
+
+    renderMemberStudyStats(memberStatsCache);
   }catch(e){
     console.error("讀取會員學習狀態失敗", e);
     if($("memberStatsHint")) $("memberStatsHint").innerHTML = `會員學習狀態讀取失敗：${escapeHtml(firebaseErrorMessage(e))}`;
@@ -479,8 +573,10 @@ function initFirebase(){
   if(!isFirebaseConfigured()){
     $("firebaseConfigNotice").classList.remove("hidden");
     setAuthStatus("目前：訪客模式。Firebase 尚未設定，可以練習，但不會寫入雲端錯題紀錄。", "guest");
+    authStateReady = true;
     updateAuthButtons();
     hideMemberStudyStats();
+    syncCountInputByScope();
     return;
   }
 
@@ -491,33 +587,48 @@ function initFirebase(){
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
     auth.onAuthStateChanged(async user => {
+      // 每次登入狀態改變都清掉舊帳號快取，避免不同帳號共用題號集合。
       currentUser = user || null;
-      if(!user) currentProfile = null;
+      currentProfile = null;
+      practiceHistoryKeyCache = null;
+      practiceHistoryRevisionCache = 0;
+      invalidateMemberStatsCache();
+      authStateReady = false;
       updateAuthButtons();
-      if(user){
-        // 先把登入狀態顯示出來，避免 Firestore profile 建立失敗時，畫面仍停在訪客模式。
-        let fallbackName = user.displayName || (user.email ? String(user.email).split("@")[0] : "會員");
-        setAuthStatus(`目前：${fallbackName} 已登入。正在確認雲端錯題紀錄權限...`, "loginOk");
+      syncCountInputByScope();
 
-        try{
-          const profile = await ensureUserProfile(user);
-          currentProfile = profile || {};
-          const name = profile.displayName || user.displayName || profile.userName || user.email || "會員";
-          setAuthStatus(`目前：${name} 已登入。考完後錯題會寫入 Firestore。`, "loginOk");
-          await refreshMemberStudyStats();
-        }catch(e){
-          console.error("Firestore profile 建立/讀取失敗", e);
-          setAuthStatus(`目前：${fallbackName} 已登入，但 Firestore 錯題紀錄權限異常：${firebaseErrorMessage(e)}`, "error");
-          await refreshMemberStudyStats();
+      try{
+        if(user){
+          // 先把登入狀態顯示出來，避免 Firestore profile 建立失敗時，畫面仍停在訪客模式。
+          const fallbackName = user.displayName || (user.email ? String(user.email).split("@")[0] : "會員");
+          setAuthStatus(`目前：${fallbackName} 已登入。正在確認雲端練習紀錄...`, "loginOk");
+
+          try{
+            const profile = await ensureUserProfile(user);
+            currentProfile = profile || {};
+            const name = profile.displayName || user.displayName || profile.userName || user.email || "會員";
+            setAuthStatus(`目前：${name} 已登入。已練習題目會集中保存在單一文件。`, "loginOk");
+            await refreshMemberStudyStats();
+          }catch(e){
+            console.error("Firestore profile 建立/讀取失敗", e);
+            setAuthStatus(`目前：${fallbackName} 已登入，但 Firestore 紀錄權限異常：${firebaseErrorMessage(e)}`, "error");
+            await refreshMemberStudyStats();
+          }
+        }else{
+          setAuthStatus("目前：訪客模式。可以練習，但不會寫入雲端錯題紀錄。", "guest");
+          hideMemberStudyStats();
         }
-      }else{
-        setAuthStatus("目前：訪客模式。可以練習，但不會寫入雲端錯題紀錄。", "guest");
-        hideMemberStudyStats();
+      }finally{
+        authStateReady = true;
+        updateAuthButtons();
+        syncCountInputByScope();
       }
     });
   }catch(e){
     console.error(e);
+    authStateReady = true;
     setAuthStatus("Firebase 初始化失敗：" + (e && e.message ? e.message : e), "error");
+    syncCountInputByScope();
   }
 }
 
@@ -832,7 +943,8 @@ function syncCountInputByScope(){
   const current = Number(countInput.value || 20);
   countInput.max = maxCount;
   countInput.value = Math.min(Math.max(current, 1), maxCount);
-  startBtn.disabled = false;
+  const waitingForAuth = !!auth && !authStateReady;
+  startBtn.disabled = waitingForAuth || examSaveInProgress;
   updateScopeSummary();
 }
 
@@ -922,12 +1034,70 @@ function loadGoogleSheetByJSONP(){
   });
 }
 
+function normalizeQuestionContent(value){
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("zh-Hant")
+    .replace(/\s+/g, " ");
+}
+
+function questionContentSignature(item){
+  return [
+    normalizeQuestionContent(item.scope),
+    normalizeQuestionContent(item.q),
+    ...(item.opts || []).map(normalizeQuestionContent),
+    normalizeQuestionContent(item.ans)
+  ].join("||");
+}
+
+function deduplicateQuestionBank(items){
+  const seenKeys = new Map();
+  const seenContents = new Map();
+  const questions = [];
+  const duplicateKeys = [];
+  const duplicateContents = [];
+  let missingPermanentIdCount = 0;
+
+  items.forEach(item => {
+    const permanentNo = questionNo(item);
+    const key = getQuestionKey(item);
+    const contentSignature = questionContentSignature(item);
+
+    if(!permanentNo) missingPermanentIdCount++;
+
+    if(seenKeys.has(key)){
+      duplicateKeys.push({key, first:seenKeys.get(key), duplicate:item});
+      return;
+    }
+
+    if(seenContents.has(contentSignature)){
+      duplicateContents.push({first:seenContents.get(contentSignature), duplicate:item});
+      return;
+    }
+
+    seenKeys.set(key, item);
+    seenContents.set(contentSignature, item);
+    questions.push(item);
+  });
+
+  return {questions, duplicateKeys, duplicateContents, missingPermanentIdCount};
+}
+
 async function loadBank(){
   $("loadMsg").textContent = "正在讀取題庫...";
   try{
     const json = await loadGoogleSheetByJSONP();
     const rows = gvizToRows(json);
-    bank = rowsToQuestions(rows);
+    const parsedBank = rowsToQuestions(rows);
+    const deduped = deduplicateQuestionBank(parsedBank);
+    bank = deduped.questions;
+
+    if(deduped.duplicateKeys.length){
+      console.warn("題庫發現重複題號 / Key，已保留第一筆並排除後續重複：", deduped.duplicateKeys);
+    }
+    if(deduped.duplicateContents.length){
+      console.warn("題庫發現內容完全相同的重複題，已保留第一筆：", deduped.duplicateContents);
+    }
 
     if(!bank.length){
       console.log(rows.slice(0,5));
@@ -935,7 +1105,11 @@ async function loadBank(){
     }
 
     renderScopeFilter();
-    $("loadMsg").textContent = `題庫讀取成功：共 ${bank.length} 題，已預設全選 ${scopeMeta.length} 個範圍。`;
+    const removedDuplicateCount = deduped.duplicateKeys.length + deduped.duplicateContents.length;
+    const warnings = [];
+    if(removedDuplicateCount) warnings.push(`已自動排除 ${removedDuplicateCount} 筆重複題`);
+    if(deduped.missingPermanentIdCount) warnings.push(`${deduped.missingPermanentIdCount} 題沒有永久題號，修改題目文字後可能被視為新題`);
+    $("loadMsg").textContent = `題庫讀取成功：可用 ${bank.length} 題，已預設全選 ${scopeMeta.length} 個範圍。${warnings.length ? " 注意：" + warnings.join("；") + "。" : ""}`;
     refreshMemberStudyStats();
   }catch(e){
     $("loadMsg").innerHTML =
@@ -945,14 +1119,24 @@ async function loadBank(){
 }
 
 async function startQuiz(sourceQuestions = null){
+  if(examSaveInProgress){
+    alert("上一回測驗紀錄仍在同步，請等同步完成後再開始下一回。");
+    return;
+  }
+  if(auth && !authStateReady){
+    alert("會員登入狀態仍在確認中，請稍後再開始。");
+    return;
+  }
   if(!bank.length){ alert("題庫尚未讀取成功"); return; }
 
   // sourceQuestions 有值時代表「只練本次錯題」或「歷史錯題複習」。
   // 這類是刻意複習，所以不套用已練習題目排除規則。
   if(Array.isArray(sourceQuestions) && sourceQuestions.length){
+    currentQuizIsReviewMode = true;
     quiz = shuffle(sourceQuestions);
     mode = "instant";
   }else{
+    currentQuizIsReviewMode = false;
     mode = $("modeInput").value;
     let pool = getSelectedQuestions();
     if(!pool.length){
@@ -962,10 +1146,11 @@ async function startQuiz(sourceQuestions = null){
 
     const originalPoolCount = pool.length;
 
-    // 登入會員的一般模擬考：自動排除 users/{uid}/practiceHistory 裡已練習過的題目。
+    // 登入會員的一般模擬考：每次開始前都重新讀取 practiceHistory/main。
+    // 只需讀取一份文件，即可避免多裝置 / 多分頁快取不同步造成重複出題。
     if(currentUser && db){
       try{
-        const practicedKeys = await getPracticeHistoryKeys();
+        const practicedKeys = await getPracticeHistoryKeys(true);
         pool = pool.filter(item => !practicedKeys.has(getQuestionKey(item)));
         const skippedCount = originalPoolCount - pool.length;
 
@@ -1057,7 +1242,7 @@ function nextQuestion(){
   else renderQuestion();
 }
 
-function finishQuiz(){
+async function finishQuiz(){
   $("quiz").classList.add("hidden");
   $("finish").classList.remove("hidden");
   $("progressBar").style.width = `100%`;
@@ -1087,11 +1272,36 @@ function finishQuiz(){
     `設定通過門檻為 ${PASS_SCORE} 分，可在程式中的 <b>PASS_SCORE</b> 自行調整。`;
 
   renderWeakPoint();
-  $("practiceWrongBtn").disabled = wrongCount === 0;
+  $("practiceWrongBtn").disabled = true;
   reviewWrong();
-  savePracticeHistoryIfLoggedIn();
-  saveWrongStatsIfLoggedIn();
-  saveExamResultIfLoggedIn({score, total, correctCount, wrongCount, rate, mode});
+
+  // 先鎖住重新開始 / 複習按鈕，避免 Firestore 尚未完成寫入就立刻開下一回。
+  examSaveInProgress = true;
+  ["againBtn", "practiceWrongBtn", "historyWrongBtnFinish", "clearPracticeHistoryBtnFinish"].forEach(id => {
+    if($(id)) $(id).disabled = true;
+  });
+  syncCountInputByScope();
+
+  try{
+    // 已練習紀錄優先完成，確保下一回一般模擬考一定能排除本回題目。
+    const practiceSaved = await savePracticeHistoryIfLoggedIn();
+    if(practiceSaved === false){
+      alert("本回已練習題目同步失敗。為避免下次重複抽到，請確認網路與 Firestore 權限後再重新開始。");
+    }
+
+    // 錯題與排行榜可以平行同步。
+    await Promise.all([
+      saveWrongStatsIfLoggedIn(),
+      saveExamResultIfLoggedIn({score, total, correctCount, wrongCount, rate, mode})
+    ]);
+  }finally{
+    examSaveInProgress = false;
+    if($("againBtn")) $("againBtn").disabled = false;
+    if($("practiceWrongBtn")) $("practiceWrongBtn").disabled = wrongCount === 0;
+    if($("historyWrongBtnFinish")) $("historyWrongBtnFinish").disabled = !currentUser || !db;
+    if($("clearPracticeHistoryBtnFinish")) $("clearPracticeHistoryBtnFinish").disabled = !currentUser || !db;
+    syncCountInputByScope();
+  }
 }
 
 function renderWeakPoint(){
@@ -1209,79 +1419,183 @@ function buildWrongStatsPayload(){
   })).filter(x => x.questionNo);
 }
 
-function buildPracticeHistoryPayload(){
-  return quiz.map(item => ({
-    questionNo: getQuestionKey(item),
-    originalNo: questionNo(item),
-    scope: item.scope || "未分類",
-    type: item.type || "",
-    questionText: String(item.q || "").slice(0, 500)
-  })).filter(x => x.questionNo);
+function buildPracticeHistoryKeys(){
+  return [...new Set(
+    quiz
+      .map(item => String(getQuestionKey(item) || "").trim())
+      .filter(Boolean)
+  )];
 }
 
-async function getPracticeHistoryKeys(){
-  if(!currentUser || !db) return new Set();
+function practiceHistoryCollectionRef(){
+  return db.collection("users").doc(currentUser.uid).collection("practiceHistory");
+}
 
-  const snap = await db.collection("users")
-    .doc(currentUser.uid)
-    .collection("practiceHistory")
-    .get();
+function practiceHistoryMainRef(){
+  return practiceHistoryCollectionRef().doc(PRACTICE_HISTORY_DOC_ID);
+}
 
+function readKeysFromPracticeHistoryData(data){
+  const rawKeys = data && Array.isArray(data.practicedKeys) ? data.practicedKeys : [];
+  return new Set(rawKeys.map(key => String(key || "").trim()).filter(Boolean));
+}
+
+async function deleteLegacyPracticeHistoryDocs(legacyDocs){
+  if(!legacyDocs || !legacyDocs.length) return 0;
+  let deleted = 0;
+
+  for(let i = 0; i < legacyDocs.length; i += 450){
+    const chunk = legacyDocs.slice(i, i + 450);
+    const batch = db.batch();
+    chunk.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    deleted += chunk.length;
+  }
+
+  return deleted;
+}
+
+async function loadOrMigratePracticeHistory(){
+  if(!currentUser || !db) return {keys:new Set(), revision:0, migrated:false};
+
+  const mainRef = practiceHistoryMainRef();
+  const mainSnap = await mainRef.get();
+
+  if(mainSnap.exists){
+    const data = mainSnap.data() || {};
+    const keys = readKeysFromPracticeHistoryData(data);
+    return {
+      keys,
+      revision:Number(data.revision || 0),
+      migrated:false
+    };
+  }
+
+  // 舊版相容：過去 practiceHistory 是「每題一份文件」。
+  // 第一次遇到舊資料時，合併為 practicedKeys 陣列，再刪除舊文件。
+  const legacySnap = await practiceHistoryCollectionRef().get();
   const keys = new Set();
-  snap.forEach(doc => {
+  const legacyDocs = [];
+
+  legacySnap.forEach(doc => {
+    if(doc.id === PRACTICE_HISTORY_DOC_ID) return;
     const data = doc.data() || {};
     const key = String(data.questionNo || "").trim();
     if(key) keys.add(key);
+    legacyDocs.push(doc);
   });
-  return keys;
+
+  if(!legacyDocs.length){
+    return {keys, revision:0, migrated:false};
+  }
+
+  const now = firebase.firestore.FieldValue.serverTimestamp();
+  await mainRef.set({
+    practicedKeys:[...keys],
+    practicedCount:keys.size,
+    revision:1,
+    schemaVersion:PRACTICE_HISTORY_SCHEMA_VERSION,
+    migratedFromLegacy:true,
+    migratedAt:now,
+    updatedAt:now
+  }, {merge:true});
+
+  try{
+    const deleted = await deleteLegacyPracticeHistoryDocs(legacyDocs);
+    console.info(`已將 ${keys.size} 個舊版已練題號合併到單一文件，並刪除 ${deleted} 份舊文件。`);
+  }catch(cleanupError){
+    // 合併完成後，即使舊文件刪除失敗，新版仍可正常運作；只會暫時多占一些儲存空間。
+    console.warn("舊版 practiceHistory 文件清理失敗，但單一文件已建立。", cleanupError);
+  }
+
+  return {keys, revision:1, migrated:true};
+}
+
+async function getPracticeHistoryKeys(force=false){
+  if(!currentUser || !db) return new Set();
+  if(!force && practiceHistoryKeyCache instanceof Set) return practiceHistoryKeyCache;
+
+  const result = await loadOrMigratePracticeHistory();
+  practiceHistoryKeyCache = result.keys;
+  practiceHistoryRevisionCache = result.revision;
+  return practiceHistoryKeyCache;
 }
 
 async function savePracticeHistoryIfLoggedIn(){
-  const payload = buildPracticeHistoryPayload();
-  if(!payload.length) return;
+  const newKeys = buildPracticeHistoryKeys();
+  if(!newKeys.length) return true;
 
   const box = $("weakPoint");
   if(!currentUser || !db){
     if(box) box.innerHTML += `<br><span class="muted small">目前是訪客模式，本次已練習題目不會寫入雲端紀錄。</span>`;
-    return;
+    return true;
   }
 
   try{
-    let saved = 0;
-    const now = firebase.firestore.FieldValue.serverTimestamp();
-
-    // Firestore batch 上限 500 筆；這裡用 450 保留安全距離。
-    for(let i = 0; i < payload.length; i += 450){
-      const chunk = payload.slice(i, i + 450);
-      const batch = db.batch();
-
-      chunk.forEach(item => {
-        const ref = db.collection("users")
-          .doc(currentUser.uid)
-          .collection("practiceHistory")
-          .doc(safeDocId(item.questionNo));
-
-        batch.set(ref, {
-          questionNo: item.questionNo,
-          originalNo: item.originalNo,
-          scope: item.scope,
-          type: item.type,
-          questionText: item.questionText,
-          practicedCount: firebase.firestore.FieldValue.increment(1),
-          lastPracticedAt: now,
-          updatedAt: now
-        }, {merge:true});
-      });
-
-      await batch.commit();
-      saved += chunk.length;
+    // 若是舊會員且尚未建立 main 文件，先做一次自動遷移。
+    if(!(practiceHistoryKeyCache instanceof Set)){
+      await getPracticeHistoryKeys(true);
     }
 
-    if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 題到已練習紀錄；下次一般模擬考會自動排除這些題目。</span>`;
-    refreshMemberStudyStats();
+    const mainRef = practiceHistoryMainRef();
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    // 每回測驗只交易更新一份文件：1 次文件讀取 + 1 次文件寫入。
+    // Transaction 可避免兩台裝置同時完成測驗時互相覆蓋 practicedKeys。
+    const result = await db.runTransaction(async tx => {
+      const snap = await tx.get(mainRef);
+      const oldData = snap.exists ? (snap.data() || {}) : {};
+      const mergedKeys = readKeysFromPracticeHistoryData(oldData);
+      const beforeCount = mergedKeys.size;
+
+      newKeys.forEach(key => mergedKeys.add(key));
+
+      const revision = Number(oldData.revision || 0) + 1;
+      const mergedArray = [...mergedKeys];
+
+      // 單一文件仍有容量上限；保留安全距離，避免題庫極度擴充後才在 Firestore 端失敗。
+      // 目前只保存短題號，數千題通常仍遠低於此安全線。
+      const estimatedBytes = new Blob([JSON.stringify(mergedArray)]).size;
+      if(estimatedBytes > 850000){
+        throw new Error("已練習題號集合接近 Firestore 單一文件容量上限，請改用分桶儲存模式。");
+      }
+
+      tx.set(mainRef, {
+        practicedKeys:mergedArray,
+        practicedCount:mergedArray.length,
+        revision,
+        schemaVersion:PRACTICE_HISTORY_SCHEMA_VERSION,
+        lastQuizQuestionCount:newKeys.length,
+        lastPracticedAt:now,
+        updatedAt:now
+      }, {merge:true});
+
+      return {
+        keys:mergedArray,
+        revision,
+        uniqueNewCount:mergedArray.length - beforeCount
+      };
+    });
+
+    practiceHistoryKeyCache = new Set(result.keys);
+    practiceHistoryRevisionCache = result.revision;
+
+    if(memberStatsCache){
+      memberStatsCache.practicedCount = practiceHistoryKeyCache.size;
+      memberStatsCache.cachedAt = Date.now();
+      renderMemberStudyStats(memberStatsCache);
+    }else{
+      scheduleMemberStatsRefresh();
+    }
+
+    if(box){
+      box.innerHTML += `<br><span class="muted small">已將本回 ${newKeys.length} 題合併寫入單一練習紀錄文件；新增不重複題目 ${result.uniqueNewCount} 題，目前累積 ${practiceHistoryKeyCache.size} 題。下次一般模擬考會自動排除。</span>`;
+    }
+    return true;
   }catch(e){
     console.error(e);
     if(box) box.innerHTML += `<br><span class="muted small">已練習紀錄同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
+    return false;
   }
 }
 
@@ -1309,14 +1623,25 @@ async function clearPracticeHistory(){
     return;
   }
 
-  const ok = confirm("確定要清除已練習題目紀錄嗎？\n\n這只會刪除 users/{uid}/practiceHistory。\n不會刪除排行榜、成績統計、錯題統計。\n清除後，已練習過的題目會重新出現在一般模擬考。");
+  const ok = confirm("確定要清除已練習題目紀錄嗎？\n\n這會清空 users/{uid}/practiceHistory/main 裡的 practicedKeys。\n不會刪除排行榜、成績統計、錯題統計。\n清除後，已練習過的題目會重新出現在一般模擬考。");
   if(!ok) return;
 
   try{
-    const ref = db.collection("users").doc(currentUser.uid).collection("practiceHistory");
-    const deleted = await deleteCollectionDocs(ref);
-    alert(`已清除 ${deleted} 筆已練習題目紀錄。題目會重新出現在一般模擬考。`);
-    refreshMemberStudyStats();
+    const ref = practiceHistoryMainRef();
+    await ref.set({
+      practicedKeys:[],
+      practicedCount:0,
+      revision:firebase.firestore.FieldValue.increment(1),
+      schemaVersion:PRACTICE_HISTORY_SCHEMA_VERSION,
+      clearedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+
+    practiceHistoryKeyCache = new Set();
+    practiceHistoryRevisionCache++;
+    invalidateMemberStatsCache();
+    alert("已清除單一練習紀錄文件中的全部已練題號。題目會重新出現在一般模擬考。");
+    await refreshMemberStudyStats(true);
     if($("loadMsg") && bank.length){
       $("loadMsg").textContent = `已清除已練習紀錄。題庫共 ${bank.length} 題，可重新抽題。`;
     }
@@ -1338,8 +1663,15 @@ async function clearWrongStats(){
   try{
     const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats");
     const deleted = await deleteCollectionDocs(ref);
+    await db.collection("users").doc(currentUser.uid).collection("stats").doc("main").set({
+      activeWrongCount: 0,
+      masteredWrongCount: 0,
+      statsVersion:"read_optimized_v2",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+    invalidateMemberStatsCache();
     alert(`已刪除 ${deleted} 筆錯題統計。`);
-    refreshMemberStudyStats();
+    refreshMemberStudyStats(true);
   }catch(e){
     console.error(e);
     alert("刪除錯題統計失敗：" + firebaseErrorMessage(e));
@@ -1545,38 +1877,91 @@ async function loadLeaderboard(){
   if(table) table.innerHTML = "排行榜讀取中...";
 
   try{
-    const snap = await db.collection("leaderboard")
-      .limit(100)
-      .get();
+    // 舊版：db.collection("leaderboard").get() 會讀取全部排行榜文件。
+    // 新版：只讀前三十名 + 自己目前名稱那一筆；名次用 count() 聚合計算前面有多少人。
+    let topSnap;
+    let orderField = "totalPoints";
+    try{
+      topSnap = await db.collection("leaderboard")
+        .orderBy("totalPoints", "desc")
+        .limit(30)
+        .get();
+    }catch(orderError){
+      console.warn("totalPoints 排序失敗，改用舊欄位 rankScore。", orderError);
+      orderField = "rankScore";
+      topSnap = await db.collection("leaderboard")
+        .orderBy("rankScore", "desc")
+        .limit(30)
+        .get();
+    }
 
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data() || {}));
-
-    rows.forEach(r => {
+    const topRows = [];
+    topSnap.forEach(doc => topRows.push({...(doc.data() || {}), _docId: doc.id}));
+    topRows.forEach(r => {
       r._totalPoints = totalPointsFromRow(r);
       r._lastEarnedPoints = Number(r.lastEarnedPoints || 0);
     });
 
-    rows.sort((a,b) => {
-      const pointDiff = Number(b._totalPoints || 0) - Number(a._totalPoints || 0);
-      if(pointDiff !== 0) return pointDiff;
-      const eligibleDiff = Number(b.eligibleAttemptCount || 0) - Number(a.eligibleAttemptCount || 0);
-      if(eligibleDiff !== 0) return eligibleDiff;
-      const avgDiff = Number(b.avgScore || 0) - Number(a.avgScore || 0);
-      if(avgDiff !== 0) return avgDiff;
-      const bestDiff = Number(b.bestScore || 0) - Number(a.bestScore || 0);
-      if(bestDiff !== 0) return bestDiff;
-      return Number(b.attemptCount || 0) - Number(a.attemptCount || 0);
-    });
+    const currentDisplayName = normalizeLeaderboardName(getDisplayNameForLeaderboard());
+    const currentNameKey = leaderboardNameKey(currentDisplayName);
+    let myRow = null;
+    let myRank = null;
 
-    const topRows = rows.slice(0, 30);
+    if(currentUser){
+      const myDocId = safeLeaderboardDocId(currentUser.uid, currentNameKey);
+      const mySnap = await db.collection("leaderboard").doc(myDocId).get();
+      if(mySnap.exists){
+        myRow = {...(mySnap.data() || {}), _docId: mySnap.id};
+        myRow._totalPoints = totalPointsFromRow(myRow);
+        myRow._lastEarnedPoints = Number(myRow.lastEarnedPoints || 0);
+
+        try{
+          const aheadQuery = db.collection("leaderboard").where(orderField, ">", Number(myRow[orderField] !== undefined ? myRow[orderField] : myRow._totalPoints || 0));
+          const aheadCount = await getAggregateCount(aheadQuery);
+          myRank = aheadCount + 1;
+        }catch(rankError){
+          console.warn("我的名次 count() 計算失敗，改用前三十名位置估算。", rankError);
+          const indexInTop30 = topRows.findIndex(r => r._docId === myRow._docId);
+          myRank = indexInTop30 >= 0 ? indexInTop30 + 1 : null;
+        }
+      }
+    }
+
+    const myRankHtml = currentUser
+      ? (myRow ? `
+        <div class="myRankBox">
+          <div class="myRankTitle">第一行｜我的目前名次</div>
+          <div class="myRankLine">
+            <span class="rankBadge ${myRank === 1 ? "top1" : (myRank === 2 ? "top2" : (myRank === 3 ? "top3" : ""))}">${myRank || "30+"}</span>
+            <span class="myRankName">${escapeHtml(myRow.displayName || currentDisplayName || "匿名會員")}</span>
+            <span>目前累積 <b>${Number(myRow._totalPoints || 0)}</b> 分</span>
+          </div>
+          <div class="myRankStats">
+            <span class="myRankStat">本次新增：${myRow.lastPointEligible === false ? "未滿 10 題" : "+" + Number(myRow._lastEarnedPoints || 0) + " 分"}</span>
+            <span class="myRankStat">有效測驗：${Number(myRow.eligibleAttemptCount || 0)} 回</span>
+            <span class="myRankStat">測驗次數：${Number(myRow.attemptCount || 0)} 回</span>
+            <span class="myRankStat">平均分：${Number(myRow.avgScore || 0)} 分</span>
+            <span class="myRankStat">最高分：${Number(myRow.bestScore || 0)} 分</span>
+          </div>
+        </div>` : `
+        <div class="myRankBox">
+          <div class="myRankTitle">第一行｜我的目前名次</div>
+          <div class="myRankLine">你目前還沒有排行榜紀錄。完成 10 題以上測驗後，這裡會顯示你的名次。</div>
+        </div>`)
+      : `
+        <div class="myRankBox">
+          <div class="myRankTitle">第一行｜我的目前名次</div>
+          <div class="myRankLine">登入後可顯示你自己的目前名次。</div>
+        </div>`;
 
     if(!topRows.length){
-      if(table) table.innerHTML = "<p class='muted'>目前還沒有排行榜資料。會員登入後完成 10 題以上測驗，就會開始累積積分。</p>";
+      if(table) table.innerHTML = `${myRankHtml}<div class="top30Title">第二行｜前三十名排行榜</div><p class='muted'>目前還沒有排行榜資料。會員登入後完成 10 題以上測驗，就會開始累積積分。</p>`;
       return;
     }
 
     const html = `
+      ${myRankHtml}
+      <div class="top30Title">第二行｜前三十名排行榜</div>
       <table class="leaderboardTable">
         <thead>
           <tr>
@@ -1594,14 +1979,14 @@ async function loadLeaderboard(){
         <tbody>
           ${topRows.map((r,i)=>{
             const rankClass = i === 0 ? "top1" : (i === 1 ? "top2" : (i === 2 ? "top3" : ""));
-            const isMe = currentUser && r.uid === currentUser.uid;
+            const isMe = currentUser && r.uid === currentUser.uid && r.displayNameKey === currentNameKey;
             const name = escapeHtml(r.displayName || "匿名會員");
             const eligibleText = Number(r.eligibleAttemptCount || 0);
             const totalAttemptText = Number(r.attemptCount || 0);
             const lastPointText = r.lastPointEligible === false
               ? "未滿 10 題"
               : `+${Number(r._lastEarnedPoints || 0)} 分`;
-            return `<tr>
+            return `<tr class="${isMe ? "currentUserRow" : ""}">
               <td><span class="rankBadge ${rankClass}">${i+1}</span></td>
               <td>
                 <div class="leaderName">${isMe ? "⭐ " : ""}${name}</div>
@@ -1618,7 +2003,7 @@ async function loadLeaderboard(){
           }).join("")}
         </tbody>
       </table>
-      <p class="muted small leaderboardNote">註：本次新增積分只計入 10 題以上測驗，公式為「分數 × 45% + 答對率 × 35% + 題數加成 × 20%」。題數加成最多以 100 題計算；若要正式競賽防作弊，需改用 Cloud Functions 後端驗證成績。</p>
+      <p class="muted small leaderboardNote">註：新版排行榜不再整包讀取所有會員，而是只讀前三十名與自己的紀錄。我的名次用 count() 聚合估算前面有多少筆分數更高的紀錄；同分排序會以排行榜列出的前 30 名順序為準。本次新增積分只計入 10 題以上測驗，公式為「分數 × 45% + 答對率 × 35% + 題數加成 × 20%」。</p>
     `;
     if(table) table.innerHTML = html;
   }catch(e){
@@ -1626,7 +2011,6 @@ async function loadLeaderboard(){
     if(table) table.innerHTML = `<p class="bad">排行榜讀取失敗：${escapeHtml(firebaseErrorMessage(e))}</p>`;
   }
 }
-
 
 async function saveWrongStatsIfLoggedIn(){
   const payload = buildWrongStatsPayload();
@@ -1640,42 +2024,39 @@ async function saveWrongStatsIfLoggedIn(){
 
   try{
     let saved = 0;
-    for(const item of payload){
-      const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats").doc(safeDocId(item.questionNo));
-      await db.runTransaction(async tx => {
-        const snap = await tx.get(ref);
-        const now = firebase.firestore.FieldValue.serverTimestamp();
-        if(snap.exists){
-          tx.set(ref, {
-            questionNo: item.questionNo,
-            scope: item.scope,
-            type: item.type,
-            lastSelected: item.lastSelected,
-            correctAnswer: item.correctAnswer,
-            wrongCount: firebase.firestore.FieldValue.increment(1),
-            mastered: false,
-            lastWrongAt: now,
-            updatedAt: now
-          }, {merge:true});
-        }else{
-          tx.set(ref, {
-            questionNo: item.questionNo,
-            scope: item.scope,
-            type: item.type,
-            lastSelected: item.lastSelected,
-            correctAnswer: item.correctAnswer,
-            wrongCount: 1,
-            mastered: false,
-            firstWrongAt: now,
-            lastWrongAt: now,
-            updatedAt: now
-          });
-        }
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    // 舊版每一題錯題都 runTransaction + tx.get(ref)，會造成「每題至少 1 次讀取」。
+    // 新版直接 batch.set + FieldValue.increment，不讀舊文件即可累加 wrongCount。
+    for(let i = 0; i < payload.length; i += 450){
+      const chunk = payload.slice(i, i + 450);
+      const batch = db.batch();
+
+      chunk.forEach(item => {
+        const ref = db.collection("users").doc(currentUser.uid).collection("wrongStats").doc(safeDocId(item.questionNo));
+        batch.set(ref, {
+          questionNo: item.questionNo,
+          scope: item.scope,
+          type: item.type,
+          lastSelected: item.lastSelected,
+          correctAnswer: item.correctAnswer,
+          wrongCount: firebase.firestore.FieldValue.increment(1),
+          mastered: false,
+          lastWrongAt: now,
+          updatedAt: now
+        }, {merge:true});
       });
-      saved++;
+
+      await batch.commit();
+      saved += chunk.length;
     }
-    if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 筆錯題統計到 Firestore。</span>`;
-    refreshMemberStudyStats();
+
+    // 錯題是否「新增加一題」不做逐題讀取判斷，避免讀取數爆掉。
+    // 這裡只排程一次狀態刷新；refreshMemberStudyStats 會用 count() 聚合，不會整包讀 wrongStats。
+    invalidateMemberStatsCache();
+    scheduleMemberStatsRefresh();
+
+    if(box) box.innerHTML += `<br><span class="muted small">已同步 ${saved} 筆錯題統計到 Firestore。錯題數會用 count() 聚合查詢刷新，避免整包讀取。</span>`;
   }catch(e){
     console.error(e);
     if(box) box.innerHTML += `<br><span class="muted small">錯題同步失敗：${escapeHtml(firebaseErrorMessage(e))}</span>`;
@@ -1751,7 +2132,7 @@ $("clearWrongStatsBtn").onclick = clearWrongStats;
 $("clearWrongStatsBtnFinish").onclick = clearWrongStats;
 $("reloadLeaderboardBtn").onclick = loadLeaderboard;
 $("hideLeaderboardBtn").onclick = () => $("leaderboardBox").classList.add("hidden");
-$("refreshMemberStatsBtn").onclick = refreshMemberStudyStats;
+$("refreshMemberStatsBtn").onclick = () => refreshMemberStudyStats(true);
 $("loginBtn").onclick = loginMember;
 $("registerBtn").onclick = registerMember;
 $("googleLoginBtn").onclick = loginWithGoogle;
